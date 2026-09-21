@@ -4,6 +4,7 @@ export default function Home() {
   return (
     <main>
       <div className="overlay">
+
         <aside className="sidebar">
           <div className="brand">
             <h1>AQUA</h1>
@@ -11,9 +12,20 @@ export default function Home() {
           </div>
 
           <nav>
-            <button className="active">⌂ Dashboard</button>
-            <button>▤ Fatture</button>
-            <button>◈ Import</button>
+            <button className="active">
+              <span className="navIcon">⌂</span>
+              Dashboard
+            </button>
+
+            <button>
+              <span className="navIcon">▤</span>
+              Fatture
+            </button>
+
+            <button>
+              <span className="navIcon">◇</span>
+              Import
+            </button>
           </nav>
 
           <div className="sidebarBottom">
@@ -23,6 +35,7 @@ export default function Home() {
         </aside>
 
         <section className="content">
+
           <header>
             <div>
               <p className="eyebrow">AQUA BAR</p>
@@ -34,41 +47,66 @@ export default function Home() {
 
             <div className="user">
               <div className="avatar">A</div>
-              <div>
+
+              <div className="userInfo">
                 <strong>Dipendente</strong>
-                <span>Online</span>
+
+                <span>
+                  <i className="onlineDot"></i>
+                  Online
+                </span>
               </div>
             </div>
           </header>
 
           <div className="cards">
+
             <div className="card">
-              <span>FONDO CASSA</span>
-              <h3>$0</h3>
-              <p>Conto aziendale AQUA BAR</p>
+              <div className="cardIcon">◎</div>
+
+              <div>
+                <span>FONDO CASSA</span>
+                <h3>$0</h3>
+                <p>Conto aziendale AQUA BAR</p>
+              </div>
             </div>
 
             <div className="card">
-              <span>FATTURATO PERSONALE</span>
-              <h3>$0</h3>
-              <p>Il tuo fatturato totale</p>
+              <div className="cardIcon">♙</div>
+
+              <div>
+                <span>FATTURATO PERSONALE</span>
+                <h3>$0</h3>
+                <p>Il tuo fatturato totale</p>
+              </div>
             </div>
 
             <div className="card">
-              <span>TOTALE IMPORT</span>
-              <h3>$0</h3>
-              <p>Totale speso in forniture</p>
+              <div className="cardIcon">▱</div>
+
+              <div>
+                <span>TOTALE IMPORT</span>
+                <h3>$0</h3>
+                <p>Totale speso in forniture</p>
+              </div>
             </div>
+
           </div>
 
           <div className="welcome">
             <span className="goldLine"></span>
-            <p>GESTIONALE UFFICIALE</p>
+
+            <p className="welcomeLabel">
+              GESTIONALE UFFICIALE
+            </p>
+
             <h2>AQUA BAR</h2>
+
             <p className="welcomeText">
               Gestisci fatture, vendite e forniture del locale.
             </p>
           </div>
+
         </section>
       </div>
     </main>
