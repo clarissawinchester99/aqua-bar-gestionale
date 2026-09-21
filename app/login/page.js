@@ -23,11 +23,12 @@ export default function LoginPage() {
       password: password,
     });
 
-    if (error) {
-      setMessage("Email o password non corretti.");
-      setLoading(false);
-      return;
-    }
+ if (error) {
+  console.error("Errore Supabase:", error);
+  setMessage(error.message);
+  setLoading(false);
+  return;
+}
 
     router.push("/");
     router.refresh();
