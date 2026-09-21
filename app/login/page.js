@@ -7,7 +7,7 @@ import { supabase } from "../../lib/supabase";
 export default function LoginPage() {
   const router = useRouter();
 
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -18,17 +18,24 @@ export default function LoginPage() {
     setLoading(true);
     setMessage("");
 
+    const cleanUsername = username
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "");
+
+    const email = `${cleanUsername}@aquabar.local`;
+
     const { error } = await supabase.auth.signInWithPassword({
-      email: email,
-      password: password,
+      email,
+      password,
     });
 
- if (error) {
-  console.error("Errore Supabase:", error);
-  setMessage(error.message);
-  setLoading(false);
-  return;
-}
+    if (error) {
+      console.error(error);
+      setMessage("Username o password non corretti.");
+      setLoading(false);
+      return;
+    }
 
     router.push("/");
     router.refresh();
@@ -57,13 +64,14 @@ export default function LoginPage() {
 
         <form onSubmit={handleLogin}>
 
-          <label>Email</label>
+          <label>Username</label>
 
           <input
-            type="email"
-            placeholder="nome@email.it"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            type="text"
+            placeholder="Inserisci username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            autoComplete="username"
             required
           />
 
@@ -74,6 +82,7 @@ export default function LoginPage() {
             placeholder="••••••••"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
             required
           />
 
