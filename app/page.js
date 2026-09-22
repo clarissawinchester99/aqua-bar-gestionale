@@ -30,63 +30,96 @@ export default function Home() {
       return;
     }
 
-    const { data: profileData, error: profileError } = await supabase
-      .from("profiles")
-      .select("nome, ruolo")
-      .eq("id", user.id)
-      .single();
+    // PROFILO
+    const { data: profileData, error: profileError } =
+      await supabase
+        .from("profiles")
+        .select("nome, ruolo")
+        .eq("id", user.id)
+        .single();
 
     if (profileError) {
-      console.error("Errore profilo:", profileError);
+      console.error(
+        "Errore profilo:",
+        profileError
+      );
     } else {
       setProfile(profileData);
     }
 
-    const { data: accountData, error: accountError } = await supabase
-      .from("company_account")
-      .select("saldo")
-      .eq("id", 1)
-      .single();
+    // FONDO CASSA
+    const { data: accountData, error: accountError } =
+      await supabase
+        .from("company_account")
+        .select("saldo")
+        .eq("id", 1)
+        .single();
 
     if (accountError) {
-      console.error("Errore fondo cassa:", accountError);
+      console.error(
+        "Errore fondo cassa:",
+        accountError
+      );
     } else {
-      setSaldo(Number(accountData?.saldo) || 0);
+      setSaldo(
+        Number(accountData?.saldo) || 0
+      );
     }
 
-    const { data: invoiceData, error: invoiceError } = await supabase
-     .from("imports")
-.select("totale")
-.eq("employee_id", user.id)
-.eq("annullato", false);
+    // FATTURATO PERSONALE
+    const { data: invoiceData, error: invoiceError } =
+      await supabase
+        .from("invoices")
+        .select("totale")
+        .eq("employee_id", user.id);
 
     if (invoiceError) {
-      console.error("Errore fatturato:", invoiceError);
+      console.error(
+        "Errore fatturato:",
+        invoiceError
+      );
     } else {
-      const totale = (invoiceData || []).reduce(
+      const totaleFatturato = (
+        invoiceData || []
+      ).reduce(
         (somma, fattura) =>
-          somma + Number(fattura.totale || 0),
+          somma +
+          Number(fattura.totale || 0),
         0
       );
 
-      setFatturato(totale);
+      setFatturato(totaleFatturato);
     }
 
-    const { data: importData, error: importError } = await supabase
-      .from("imports")
-      .select("totale")
-      .eq("employee_id", user.id);
+    // IMPORT
+    // IMPORTANTE:
+    // vengono conteggiati SOLO gli ordini
+    // che NON sono stati annullati.
+    const { data: importData, error: importError } =
+      await supabase
+        .from("imports")
+        .select("totale")
+        .eq("employee_id", user.id)
+        .eq("annullato", false);
 
     if (importError) {
-      console.error("Errore import:", importError);
+      console.error(
+        "Errore import:",
+        importError
+      );
     } else {
-      const totale = (importData || []).reduce(
+      const totaleImportAttivi = (
+        importData || []
+      ).reduce(
         (somma, ordine) =>
-          somma + Number(ordine.totale || 0),
+          somma +
+          Number(ordine.totale || 0),
         0
       );
 
-      setTotaleImport(totale);
+      setTotaleImport(
+        totaleImportAttivi
+      );
     }
 
     setLoading(false);
@@ -98,10 +131,13 @@ export default function Home() {
   }
 
   function formatMoney(value) {
-    return Number(value || 0).toLocaleString("it-IT", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    });
+    return Number(value || 0).toLocaleString(
+      "it-IT",
+      {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }
+    );
   }
 
   if (loading) {
@@ -128,29 +164,44 @@ export default function Home() {
           <nav>
 
             <button className="active">
-              <span className="navIcon">⌂</span>
+              <span className="navIcon">
+                ⌂
+              </span>
               Dashboard
             </button>
 
             <button
-              onClick={() => router.push("/fatture")}
+              onClick={() =>
+                router.push("/fatture")
+              }
             >
-              <span className="navIcon">▤</span>
+              <span className="navIcon">
+                ▤
+              </span>
               Fatture
             </button>
 
             <button
-              onClick={() => router.push("/import")}
+              onClick={() =>
+                router.push("/import")
+              }
             >
-              <span className="navIcon">◇</span>
+              <span className="navIcon">
+                ◇
+              </span>
               Import
             </button>
 
           </nav>
 
           <div className="sidebarBottom">
-            <p>Gestionale AQUA BAR</p>
-            <small>FiveM Management</small>
+            <p>
+              Gestionale AQUA BAR
+            </p>
+
+            <small>
+              FiveM Management
+            </small>
           </div>
 
         </aside>
@@ -160,33 +211,42 @@ export default function Home() {
           <header>
 
             <div>
+
               <p className="eyebrow">
                 AQUA BAR
               </p>
 
-              <h2>Dashboard</h2>
+              <h2>
+                Dashboard
+              </h2>
 
               <p className="subtitle">
-                Benvenuto nel gestionale del locale
+                Benvenuto nel gestionale
+                del locale
               </p>
+
             </div>
 
             <div className="user">
 
               <div className="avatar">
-                {profile?.nome?.charAt(0).toUpperCase() || "A"}
+                {profile?.nome
+                  ?.charAt(0)
+                  .toUpperCase() || "A"}
               </div>
 
               <div className="userInfo">
 
                 <strong>
-                  {profile?.nome || "Utente"}
+                  {profile?.nome ||
+                    "Utente"}
                 </strong>
 
                 <span>
                   <i className="onlineDot"></i>
 
-                  {profile?.ruolo === "admin"
+                  {profile?.ruolo ===
+                  "admin"
                     ? "Amministratore"
                     : "Dipendente"}
                 </span>
@@ -206,6 +266,8 @@ export default function Home() {
 
           <div className="cards">
 
+            {/* FONDO CASSA */}
+
             <div className="card">
 
               <div className="cardIcon">
@@ -213,18 +275,28 @@ export default function Home() {
               </div>
 
               <div>
-                <span>FONDO CASSA</span>
+
+                <span>
+                  FONDO CASSA
+                </span>
 
                 <h3>
-                  ${formatMoney(saldo)}
+                  $
+                  {formatMoney(
+                    saldo
+                  )}
                 </h3>
 
                 <p>
-                  Conto aziendale AQUA BAR
+                  Conto aziendale
+                  AQUA BAR
                 </p>
+
               </div>
 
             </div>
+
+            {/* FATTURATO */}
 
             <div className="card">
 
@@ -233,20 +305,28 @@ export default function Home() {
               </div>
 
               <div>
+
                 <span>
                   FATTURATO PERSONALE
                 </span>
 
                 <h3>
-                  ${formatMoney(fatturato)}
+                  $
+                  {formatMoney(
+                    fatturato
+                  )}
                 </h3>
 
                 <p>
-                  Il tuo fatturato totale
+                  Il tuo fatturato
+                  totale
                 </p>
+
               </div>
 
             </div>
+
+            {/* IMPORT */}
 
             <div className="card">
 
@@ -255,15 +335,23 @@ export default function Home() {
               </div>
 
               <div>
-                <span>TOTALE IMPORT</span>
+
+                <span>
+                  TOTALE IMPORT
+                </span>
 
                 <h3>
-                  ${formatMoney(totaleImport)}
+                  $
+                  {formatMoney(
+                    totaleImport
+                  )}
                 </h3>
 
                 <p>
-                  Totale speso in forniture
+                  Import attivi
+                  non annullati
                 </p>
+
               </div>
 
             </div>
@@ -272,16 +360,21 @@ export default function Home() {
 
           <div className="welcome">
 
-            <span className="goldLine"></span>
+            <span className="goldLine">
+            </span>
 
             <p className="welcomeLabel">
               GESTIONALE UFFICIALE
             </p>
 
-            <h2>AQUA BAR</h2>
+            <h2>
+              AQUA BAR
+            </h2>
 
             <p className="welcomeText">
-              Gestisci fatture, vendite e forniture del locale.
+              Gestisci fatture,
+              vendite e forniture
+              del locale.
             </p>
 
           </div>
