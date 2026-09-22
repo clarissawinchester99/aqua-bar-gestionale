@@ -20,7 +20,6 @@ export default function Home() {
   async function loadDashboard() {
     setLoading(true);
 
-    // Controlla chi è collegato
     const {
       data: { user },
       error: userError,
@@ -31,7 +30,6 @@ export default function Home() {
       return;
     }
 
-    // Legge nome e ruolo
     const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select("nome, ruolo")
@@ -44,7 +42,6 @@ export default function Home() {
       setProfile(profileData);
     }
 
-    // Legge il fondo cassa aziendale
     const { data: accountData, error: accountError } = await supabase
       .from("company_account")
       .select("saldo")
@@ -57,7 +54,6 @@ export default function Home() {
       setSaldo(Number(accountData?.saldo) || 0);
     }
 
-    // Legge tutte le fatture dell'utente collegato
     const { data: invoiceData, error: invoiceError } = await supabase
       .from("invoices")
       .select("totale")
@@ -66,15 +62,15 @@ export default function Home() {
     if (invoiceError) {
       console.error("Errore fatturato:", invoiceError);
     } else {
-      const totaleFatturato = (invoiceData || []).reduce(
-        (somma, fattura) => somma + Number(fattura.totale || 0),
+      const totale = (invoiceData || []).reduce(
+        (somma, fattura) =>
+          somma + Number(fattura.totale || 0),
         0
       );
 
-      setFatturato(totaleFatturato);
+      setFatturato(totale);
     }
 
-    // Legge gli import effettuati dall'utente
     const { data: importData, error: importError } = await supabase
       .from("imports")
       .select("totale")
@@ -83,12 +79,13 @@ export default function Home() {
     if (importError) {
       console.error("Errore import:", importError);
     } else {
-      const totaleSpesoImport = (importData || []).reduce(
-        (somma, ordine) => somma + Number(ordine.totale || 0),
+      const totale = (importData || []).reduce(
+        (somma, ordine) =>
+          somma + Number(ordine.totale || 0),
         0
       );
 
-      setTotaleImport(totaleSpesoImport);
+      setTotaleImport(totale);
     }
 
     setLoading(false);
@@ -109,7 +106,9 @@ export default function Home() {
   if (loading) {
     return (
       <main className="loadingPage">
-        <div className="loadingText">AQUA BAR</div>
+        <div className="loadingText">
+          AQUA BAR
+        </div>
       </main>
     );
   }
@@ -132,12 +131,16 @@ export default function Home() {
               Dashboard
             </button>
 
-            <button>
+            <button
+              onClick={() => router.push("/fatture")}
+            >
               <span className="navIcon">▤</span>
               Fatture
             </button>
 
-            <button>
+            <button
+              onClick={() => router.push("/import")}
+            >
               <span className="navIcon">◇</span>
               Import
             </button>
@@ -192,7 +195,6 @@ export default function Home() {
               <button
                 className="logoutButton"
                 onClick={logout}
-                title="Esci dal gestionale"
               >
                 Esci
               </button>
@@ -210,9 +212,7 @@ export default function Home() {
               </div>
 
               <div>
-                <span>
-                  FONDO CASSA
-                </span>
+                <span>FONDO CASSA</span>
 
                 <h3>
                   ${formatMoney(saldo)}
@@ -254,9 +254,7 @@ export default function Home() {
               </div>
 
               <div>
-                <span>
-                  TOTALE IMPORT
-                </span>
+                <span>TOTALE IMPORT</span>
 
                 <h3>
                   ${formatMoney(totaleImport)}
@@ -279,9 +277,7 @@ export default function Home() {
               GESTIONALE UFFICIALE
             </p>
 
-            <h2>
-              AQUA BAR
-            </h2>
+            <h2>AQUA BAR</h2>
 
             <p className="welcomeText">
               Gestisci fatture, vendite e forniture del locale.
