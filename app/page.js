@@ -1,6 +1,58 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "../lib/supabase";
+
 export default function Home() {
+  const router = useRouter();
+
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadUser();
+  }, []);
+
+  async function loadUser() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("nome, ruolo")
+      .eq("id", user.id)
+      .single();
+
+    if (error || !data) {
+      console.error("Errore profilo:", error);
+      setLoading(false);
+      return;
+    }
+
+    setProfile(data);
+    setLoading(false);
+  }
+
+  async function logout() {
+    await supabase.auth.signOut();
+    router.replace("/login");
+  }
+
+  if (loading) {
+    return (
+      <main className="loadingPage">
+        <div className="loadingText">AQUA BAR</div>
+      </main>
+    );
+  }
+
   return (
     <main>
       <div className="overlay">
@@ -46,16 +98,30 @@ export default function Home() {
             </div>
 
             <div className="user">
-              <div className="avatar">A</div>
+              <div className="avatar">
+                {profile?.nome?.charAt(0).toUpperCase() || "A"}
+              </div>
 
               <div className="userInfo">
-                <strong>Dipendente</strong>
+                <strong>
+                  {profile?.nome || "Utente"}
+                </strong>
 
                 <span>
                   <i className="onlineDot"></i>
-                  Online
+                  {profile?.ruolo === "admin"
+                    ? "Amministratore"
+                    : "Dipendente"}
                 </span>
               </div>
+
+              <button
+                className="logoutButton"
+                onClick={logout}
+                title="Esci"
+              >
+                Esci
+              </button>
             </div>
           </header>
 
