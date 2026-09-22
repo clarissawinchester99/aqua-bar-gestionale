@@ -345,7 +345,10 @@ export default function FatturePage() {
 
   return (
     <main>
+
       <div className="overlay">
+
+        {/* SIDEBAR */}
 
         <aside className="sidebar">
 
@@ -359,21 +362,42 @@ export default function FatturePage() {
             <button
               onClick={() => router.push("/")}
             >
-              <span className="navIcon">⌂</span>
+              <span className="navIcon">
+                ⌂
+              </span>
               Dashboard
             </button>
 
             <button className="active">
-              <span className="navIcon">▤</span>
+              <span className="navIcon">
+                ▤
+              </span>
               Fatture
             </button>
 
             <button
               onClick={() => router.push("/import")}
             >
-              <span className="navIcon">◇</span>
+              <span className="navIcon">
+                ◇
+              </span>
               Import
             </button>
+
+            {/* VISIBILE SOLO AGLI ADMIN */}
+
+            {profile?.ruolo === "admin" && (
+              <button
+                onClick={() =>
+                  router.push("/stipendi")
+                }
+              >
+                <span className="navIcon">
+                  ♙
+                </span>
+                Stipendi
+              </button>
+            )}
 
           </nav>
 
@@ -384,11 +408,14 @@ export default function FatturePage() {
 
         </aside>
 
+        {/* CONTENUTO */}
+
         <section className="content">
 
           <header>
 
             <div>
+
               <p className="eyebrow">
                 AQUA BAR
               </p>
@@ -398,6 +425,7 @@ export default function FatturePage() {
               <p className="subtitle">
                 Registra le tue vendite
               </p>
+
             </div>
 
             <div className="user">
@@ -434,6 +462,8 @@ export default function FatturePage() {
             </div>
 
           </header>
+
+          {/* NUOVA FATTURA + CARRELLO */}
 
           <div className="invoiceLayout">
 
@@ -503,6 +533,8 @@ export default function FatturePage() {
 
             </div>
 
+            {/* CARRELLO */}
+
             <div className="cartPanel">
 
               <button
@@ -511,6 +543,7 @@ export default function FatturePage() {
                   setCartOpen(!cartOpen)
                 }
               >
+
                 <span>
                   CARRELLO — {cart.length}{" "}
                   {cart.length === 1
@@ -521,6 +554,7 @@ export default function FatturePage() {
                 <strong>
                   {cartOpen ? "▲" : "▼"}
                 </strong>
+
               </button>
 
               {cartOpen && (
@@ -617,11 +651,13 @@ export default function FatturePage() {
                         onClick={confirmInvoices}
                         disabled={saving}
                       >
+
                         {saving
                           ? "REGISTRAZIONE..."
                           : cart.length === 1
                           ? "CONFERMA FATTURA"
                           : `CONFERMA ${cart.length} FATTURE`}
+
                       </button>
 
                     </>
@@ -635,6 +671,8 @@ export default function FatturePage() {
             </div>
 
           </div>
+
+          {/* MESSAGGI */}
 
           {message && (
 
@@ -650,13 +688,16 @@ export default function FatturePage() {
 
           )}
 
-          {/* STORICO FATTURE */}
+          {/* ============================
+              STORICO FATTURE
+          ============================ */}
 
           <div className="invoiceHistory">
 
             <div className="invoiceHistoryHeader">
 
               <div>
+
                 <p className="welcomeLabel">
                   MOVIMENTI
                 </p>
@@ -664,6 +705,7 @@ export default function FatturePage() {
                 <h2>
                   Storico Fatture
                 </h2>
+
               </div>
 
               <span>
@@ -698,6 +740,8 @@ export default function FatturePage() {
                       key={invoice.id}
                     >
 
+                      {/* NUMERO E PRODOTTO */}
+
                       <div className="invoiceHistoryMain">
 
                         <div className="invoiceNumber">
@@ -721,10 +765,13 @@ export default function FatturePage() {
 
                       </div>
 
+                      {/* QUANTITÀ E PREZZO */}
+
                       <div className="invoiceHistoryDetails">
 
                         <span>
                           QUANTITÀ
+
                           <strong>
                             {item?.quantita || 0}
                           </strong>
@@ -732,6 +779,7 @@ export default function FatturePage() {
 
                         <span>
                           PREZZO
+
                           <strong>
                             $
                             {formatMoney(
@@ -741,6 +789,8 @@ export default function FatturePage() {
                         </span>
 
                       </div>
+
+                      {/* TOTALE */}
 
                       <div className="invoiceHistoryTotal">
 
@@ -756,6 +806,8 @@ export default function FatturePage() {
                         </strong>
 
                       </div>
+
+                      {/* ANNULLAMENTO */}
 
                       <div className="invoiceHistoryAction">
 
@@ -777,10 +829,12 @@ export default function FatturePage() {
                               invoice.id
                             }
                           >
+
                             {cancellingId ===
                             invoice.id
                               ? "ANNULLAMENTO..."
                               : "ANNULLA FATTURA"}
+
                           </button>
 
                         )}
@@ -802,6 +856,7 @@ export default function FatturePage() {
         </section>
 
       </div>
+
     </main>
   );
 }
