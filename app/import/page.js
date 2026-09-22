@@ -281,7 +281,10 @@ export default function ImportPage() {
 
   return (
     <main>
+
       <div className="overlay">
+
+        {/* SIDEBAR */}
 
         <aside className="sidebar">
 
@@ -295,7 +298,9 @@ export default function ImportPage() {
             <button
               onClick={() => router.push("/")}
             >
-              <span className="navIcon">⌂</span>
+              <span className="navIcon">
+                ⌂
+              </span>
               Dashboard
             </button>
 
@@ -304,14 +309,33 @@ export default function ImportPage() {
                 router.push("/fatture")
               }
             >
-              <span className="navIcon">▤</span>
+              <span className="navIcon">
+                ▤
+              </span>
               Fatture
             </button>
 
             <button className="active">
-              <span className="navIcon">◇</span>
+              <span className="navIcon">
+                ◇
+              </span>
               Import
             </button>
+
+            {/* SOLO AMMINISTRATORI */}
+
+            {profile?.ruolo === "admin" && (
+              <button
+                onClick={() =>
+                  router.push("/stipendi")
+                }
+              >
+                <span className="navIcon">
+                  ♙
+                </span>
+                Stipendi
+              </button>
+            )}
 
           </nav>
 
@@ -322,11 +346,14 @@ export default function ImportPage() {
 
         </aside>
 
+        {/* CONTENUTO */}
+
         <section className="content">
 
           <header>
 
             <div>
+
               <p className="eyebrow">
                 AQUA BAR
               </p>
@@ -336,6 +363,7 @@ export default function ImportPage() {
               <p className="subtitle">
                 Gestisci le forniture del locale
               </p>
+
             </div>
 
             <div className="user">
@@ -373,9 +401,12 @@ export default function ImportPage() {
 
           </header>
 
+          {/* FONDO CASSA */}
+
           <div className="importTopCard">
 
             <div>
+
               <span>
                 FONDO CASSA DISPONIBILE
               </span>
@@ -383,6 +414,7 @@ export default function ImportPage() {
               <h3>
                 ${formatMoney(saldo)}
               </h3>
+
             </div>
 
             <p>
@@ -392,7 +424,11 @@ export default function ImportPage() {
 
           </div>
 
+          {/* KIT */}
+
           <div className="importGrid">
+
+            {/* KIT CIBO */}
 
             <div className="importKitCard">
 
@@ -442,6 +478,8 @@ export default function ImportPage() {
               </div>
 
             </div>
+
+            {/* KIT BEVANDE */}
 
             <div className="importKitCard">
 
@@ -494,6 +532,8 @@ export default function ImportPage() {
 
           </div>
 
+          {/* RIEPILOGO */}
+
           <div className="importSummary">
 
             <div>
@@ -504,6 +544,7 @@ export default function ImportPage() {
 
               <div className="importSummaryRow">
                 <span>Kit Cibo</span>
+
                 <strong>
                   {Number(kitCibo || 0)}
                 </strong>
@@ -511,6 +552,7 @@ export default function ImportPage() {
 
               <div className="importSummaryRow">
                 <span>Kit Bevande</span>
+
                 <strong>
                   {Number(kitBevande || 0)}
                 </strong>
@@ -535,16 +577,21 @@ export default function ImportPage() {
                     Number(kitBevande || 0) === 0)
                 }
               >
+
                 {saving
                   ? "REGISTRAZIONE..."
                   : "CONFERMA IMPORT"}
+
               </button>
 
             </div>
 
           </div>
 
+          {/* MESSAGGI */}
+
           {message && (
+
             <div
               className={
                 success
@@ -554,6 +601,7 @@ export default function ImportPage() {
             >
               {message}
             </div>
+
           )}
 
           {/* STORICO IMPORT */}
@@ -563,11 +611,15 @@ export default function ImportPage() {
             <div className="importHistoryHeader">
 
               <div>
+
                 <p className="welcomeLabel">
                   MOVIMENTI
                 </p>
 
-                <h2>Storico Import</h2>
+                <h2>
+                  Storico Import
+                </h2>
+
               </div>
 
               <span>
@@ -597,6 +649,8 @@ export default function ImportPage() {
                     key={order.id}
                   >
 
+                    {/* ORDINE */}
+
                     <div className="importHistoryMain">
 
                       <div className="importOrderNumber">
@@ -619,10 +673,13 @@ export default function ImportPage() {
 
                     </div>
 
+                    {/* QUANTITÀ */}
+
                     <div className="importHistoryDetails">
 
                       <span>
                         Cibo
+
                         <strong>
                           {order.kit_cibo}
                         </strong>
@@ -630,6 +687,7 @@ export default function ImportPage() {
 
                       <span>
                         Bevande
+
                         <strong>
                           {order.kit_bevande}
                         </strong>
@@ -637,9 +695,13 @@ export default function ImportPage() {
 
                     </div>
 
+                    {/* TOTALE */}
+
                     <div className="importHistoryTotal">
 
-                      <small>Totale</small>
+                      <small>
+                        Totale
+                      </small>
 
                       <strong>
                         $
@@ -649,6 +711,8 @@ export default function ImportPage() {
                       </strong>
 
                     </div>
+
+                    {/* ANNULLAMENTO */}
 
                     <div className="importHistoryAction">
 
@@ -670,10 +734,12 @@ export default function ImportPage() {
                             order.id
                           }
                         >
+
                           {cancellingId ===
                           order.id
                             ? "ANNULLAMENTO..."
                             : "ANNULLA ORDINE"}
+
                         </button>
 
                       )}
@@ -693,6 +759,7 @@ export default function ImportPage() {
         </section>
 
       </div>
+
     </main>
   );
 }
