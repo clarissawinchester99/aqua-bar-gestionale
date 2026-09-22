@@ -11,12 +11,15 @@ export default function ImportPage() {
 
   const [profile, setProfile] = useState(null);
   const [saldo, setSaldo] = useState(0);
+  const [imports, setImports] = useState([]);
 
   const [kitCibo, setKitCibo] = useState(0);
   const [kitBevande, setKitBevande] = useState(0);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [cancellingId, setCancellingId] = useState(null);
+
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
 
@@ -54,7 +57,10 @@ export default function ImportPage() {
       setProfile(profileData);
     }
 
-    await loadSaldo();
+    await Promise.all([
+      loadSaldo(),
+      loadImports()
+    ]);
 
     setLoading(false);
   }
@@ -74,10 +80,40 @@ export default function ImportPage() {
     setSaldo(Number(data?.saldo) || 0);
   }
 
+  async function loadImports() {
+    const { data, error } = await supabase
+      .from("imports")
+      .select(
+        "id, kit_cibo, kit_bevande, prezzo_kit, totale, created_at, annullato, annullato_at"
+      )
+      .order("created_at", {
+        ascending: false,
+      });
+
+    if (error) {
+      console.error("Errore storico import:", error);
+      return;
+    }
+
+    setImports(data || []);
+  }
+
   function formatMoney(value) {
     return Number(value || 0).toLocaleString("it-IT", {
       minimumFractionDigits: 0,
       maximumFractionDigits: 2,
+    });
+  }
+
+  function formatDate(value) {
+    if (!value) return "-";
+
+    return new Date(value).toLocaleString("it-IT", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   }
 
@@ -92,12 +128,9 @@ export default function ImportPage() {
       return;
     }
 
-    const number = Math.max(
-      0,
-      Math.floor(Number(value))
+    setKitCibo(
+      Math.max(0, Math.floor(Number(value)))
     );
-
-    setKitCibo(number);
   }
 
   function handleBevandeChange(e) {
@@ -111,12 +144,9 @@ export default function ImportPage() {
       return;
     }
 
-    const number = Math.max(
-      0,
-      Math.floor(Number(value))
+    setKitBevande(
+      Math.max(0, Math.floor(Number(value)))
     );
-
-    setKitBevande(number);
   }
 
   async function confirmImport() {
@@ -151,45 +181,87 @@ export default function ImportPage() {
     if (error) {
       console.error("Errore import:", error);
 
-      if (
+      setMessage(
         error.message
           ?.toLowerCase()
           .includes("fondo cassa insufficiente")
-      ) {
-        setMessage("Fondo cassa insufficiente.");
-      } else {
-        setMessage(
-          "Si è verificato un errore durante l'import."
-        );
-      }
+          ? "Fondo cassa insufficiente."
+          : "Si è verificato un errore durante l'import."
+      );
 
       setSaving(false);
       return;
     }
 
-    const nuovoSaldo = Number(data?.nuovo_saldo);
-
-    if (!Number.isNaN(nuovoSaldo)) {
-      setSaldo(nuovoSaldo);
-    } else {
-      await loadSaldo();
-    }
-
-    const totalePagato = Number(
-      data?.totale || totale
-    );
+    setSaldo(Number(data?.nuovo_saldo) || 0);
 
     setKitCibo(0);
     setKitBevande(0);
 
     setMessage(
       `Import registrato con successo. $${formatMoney(
-        totalePagato
+        data?.totale || totale
       )} scalati dal Fondo Cassa.`
     );
 
     setSuccess(true);
+
+    await loadImports();
+
     setSaving(false);
+  }
+
+  async function cancelImport(order) {
+    if (order.annullato || cancellingId) return;
+
+    const confirmed = window.confirm(
+      `Vuoi annullare questo ordine?\n\n` +
+      `Kit Cibo: ${order.kit_cibo}\n` +
+      `Kit Bevande: ${order.kit_bevande}\n` +
+      `Rimborso: $${formatMoney(order.totale)}\n\n` +
+      `Il denaro verrà restituito al Fondo Cassa.`
+    );
+
+    if (!confirmed) return;
+
+    setMessage("");
+    setSuccess(false);
+    setCancellingId(order.id);
+
+    const { data, error } = await supabase.rpc(
+      "annulla_import",
+      {
+        p_import_id: order.id,
+      }
+    );
+
+    if (error) {
+      console.error(
+        "Errore annullamento import:",
+        error
+      );
+
+      setMessage(
+        "Non è stato possibile annullare l'ordine."
+      );
+
+      setCancellingId(null);
+      return;
+    }
+
+    setSaldo(Number(data?.nuovo_saldo) || 0);
+
+    setMessage(
+      `Ordine annullato. $${formatMoney(
+        data?.rimborso
+      )} restituiti al Fondo Cassa.`
+    );
+
+    setSuccess(true);
+
+    await loadImports();
+
+    setCancellingId(null);
   }
 
   async function logout() {
@@ -322,8 +394,6 @@ export default function ImportPage() {
 
           <div className="importGrid">
 
-            {/* KIT CIBO */}
-
             <div className="importKitCard">
 
               <div className="importKitIcon">
@@ -350,11 +420,11 @@ export default function ImportPage() {
                 type="number"
                 min="0"
                 step="1"
-                inputMode="numeric"
                 value={kitCibo}
                 onChange={handleCiboChange}
-                onFocus={(e) => e.target.select()}
-                placeholder="0"
+                onFocus={(e) =>
+                  e.target.select()
+                }
               />
 
               <div className="kitSubtotal">
@@ -372,8 +442,6 @@ export default function ImportPage() {
               </div>
 
             </div>
-
-            {/* KIT BEVANDE */}
 
             <div className="importKitCard">
 
@@ -401,11 +469,11 @@ export default function ImportPage() {
                 type="number"
                 min="0"
                 step="1"
-                inputMode="numeric"
                 value={kitBevande}
                 onChange={handleBevandeChange}
-                onFocus={(e) => e.target.select()}
-                placeholder="0"
+                onFocus={(e) =>
+                  e.target.select()
+                }
               />
 
               <div className="kitSubtotal">
@@ -425,8 +493,6 @@ export default function ImportPage() {
             </div>
 
           </div>
-
-          {/* RIEPILOGO */}
 
           <div className="importSummary">
 
@@ -489,6 +555,140 @@ export default function ImportPage() {
               {message}
             </div>
           )}
+
+          {/* STORICO IMPORT */}
+
+          <div className="importHistory">
+
+            <div className="importHistoryHeader">
+
+              <div>
+                <p className="welcomeLabel">
+                  MOVIMENTI
+                </p>
+
+                <h2>Storico Import</h2>
+              </div>
+
+              <span>
+                {imports.length} ordini
+              </span>
+
+            </div>
+
+            {imports.length === 0 ? (
+
+              <p className="emptyCart">
+                Nessun import registrato.
+              </p>
+
+            ) : (
+
+              <div className="importHistoryList">
+
+                {imports.map((order) => (
+
+                  <div
+                    className={`importHistoryItem ${
+                      order.annullato
+                        ? "cancelled"
+                        : ""
+                    }`}
+                    key={order.id}
+                  >
+
+                    <div className="importHistoryMain">
+
+                      <div className="importOrderNumber">
+                        #{order.id}
+                      </div>
+
+                      <div>
+
+                        <strong>
+                          Import AQUA BAR
+                        </strong>
+
+                        <p>
+                          {formatDate(
+                            order.created_at
+                          )}
+                        </p>
+
+                      </div>
+
+                    </div>
+
+                    <div className="importHistoryDetails">
+
+                      <span>
+                        Cibo
+                        <strong>
+                          {order.kit_cibo}
+                        </strong>
+                      </span>
+
+                      <span>
+                        Bevande
+                        <strong>
+                          {order.kit_bevande}
+                        </strong>
+                      </span>
+
+                    </div>
+
+                    <div className="importHistoryTotal">
+
+                      <small>Totale</small>
+
+                      <strong>
+                        $
+                        {formatMoney(
+                          order.totale
+                        )}
+                      </strong>
+
+                    </div>
+
+                    <div className="importHistoryAction">
+
+                      {order.annullato ? (
+
+                        <span className="cancelledBadge">
+                          ANNULLATO
+                        </span>
+
+                      ) : (
+
+                        <button
+                          className="cancelImportButton"
+                          onClick={() =>
+                            cancelImport(order)
+                          }
+                          disabled={
+                            cancellingId ===
+                            order.id
+                          }
+                        >
+                          {cancellingId ===
+                          order.id
+                            ? "ANNULLAMENTO..."
+                            : "ANNULLA ORDINE"}
+                        </button>
+
+                      )}
+
+                    </div>
+
+                  </div>
+
+                ))}
+
+              </div>
+
+            )}
+
+          </div>
 
         </section>
 
