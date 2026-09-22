@@ -18,111 +18,145 @@ export default function Home() {
   }, []);
 
   async function loadDashboard() {
-    setLoading(true);
+    try {
+      /*
+        CONTROLLO SESSIONE
 
-    // CONTROLLO UTENTE
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+        getSession() è più rapido per la navigazione interna
+        perché utilizza la sessione già disponibile nel browser.
+      */
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
 
-    if (userError || !user) {
-      router.replace("/login");
-      return;
-    }
+      if (sessionError || !session?.user) {
+        router.replace("/login");
+        return;
+      }
 
-    // PROFILO
-    const { data: profileData, error: profileError } =
-      await supabase
-        .from("profiles")
-        .select("nome, ruolo")
-        .eq("id", user.id)
-        .single();
+      const user = session.user;
 
-    if (profileError) {
-      console.error("Errore profilo:", profileError);
-    } else {
-      setProfile(profileData);
-    }
+      /*
+        CARICHIAMO TUTTO CONTEMPORANEAMENTE
+        invece di aspettare una richiesta alla volta.
+      */
 
-    // FONDO CASSA
-    const { data: accountData, error: accountError } =
-      await supabase
-        .from("company_account")
-        .select("saldo")
-        .eq("id", 1)
-        .single();
+      const [
+        profileResult,
+        accountResult,
+        invoiceResult,
+        importResult,
+      ] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("nome, ruolo")
+          .eq("id", user.id)
+          .single(),
 
-    if (accountError) {
-      console.error(
-        "Errore fondo cassa:",
-        accountError
-      );
-    } else {
-      setSaldo(
-        Number(accountData?.saldo) || 0
-      );
-    }
+        supabase
+          .from("company_account")
+          .select("saldo")
+          .eq("id", 1)
+          .single(),
 
-    // FATTURATO PERSONALE
-    // Le fatture annullate NON vengono conteggiate
-    const { data: invoiceData, error: invoiceError } =
-      await supabase
-        .from("invoices")
-        .select("totale")
-        .eq("employee_id", user.id)
-        .eq("annullato", false);
+        supabase
+          .from("invoices")
+          .select("totale")
+          .eq("employee_id", user.id)
+          .eq("annullato", false),
 
-    if (invoiceError) {
-      console.error(
-        "Errore fatturato:",
-        invoiceError
-      );
-    } else {
-      const totaleFatturato =
-        (invoiceData || []).reduce(
-          (somma, fattura) =>
-            somma +
-            Number(fattura.totale || 0),
-          0
+        supabase.rpc("totale_import_attivi"),
+      ]);
+
+      /*
+        PROFILO
+      */
+
+      if (profileResult.error) {
+        console.error(
+          "Errore profilo:",
+          profileResult.error
+        );
+      } else {
+        setProfile(profileResult.data);
+      }
+
+      /*
+        FONDO CASSA
+      */
+
+      if (accountResult.error) {
+        console.error(
+          "Errore fondo cassa:",
+          accountResult.error
+        );
+      } else {
+        setSaldo(
+          Number(accountResult.data?.saldo) || 0
+        );
+      }
+
+      /*
+        FATTURATO PERSONALE
+      */
+
+      if (invoiceResult.error) {
+        console.error(
+          "Errore fatturato:",
+          invoiceResult.error
+        );
+      } else {
+        const totale =
+          (invoiceResult.data || []).reduce(
+            (somma, fattura) =>
+              somma +
+              Number(fattura.totale || 0),
+            0
+          );
+
+        setFatturato(totale);
+      }
+
+      /*
+        TOTALE IMPORT
+      */
+
+      if (importResult.error) {
+        console.error(
+          "Errore totale import:",
+          importResult.error
         );
 
-      setFatturato(totaleFatturato);
-    }
-
-    // TOTALE IMPORT
-    // Gli import annullati NON vengono conteggiati
-    const {
-      data: importTotal,
-      error: importTotalError,
-    } = await supabase.rpc(
-      "totale_import_attivi"
-    );
-
-    if (importTotalError) {
+        setTotaleImport(0);
+      } else {
+        setTotaleImport(
+          Number(importResult.data) || 0
+        );
+      }
+    } catch (error) {
       console.error(
-        "Errore totale import:",
-        importTotalError
+        "Errore caricamento Dashboard:",
+        error
       );
-
-      setTotaleImport(0);
-    } else {
-      setTotaleImport(
-        Number(importTotal) || 0
-      );
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }
 
-  // LOGOUT
+  /*
+    LOGOUT
+  */
+
   async function logout() {
     await supabase.auth.signOut();
-
     router.replace("/login");
   }
 
-  // FORMATTAZIONE SOLDI
+  /*
+    FORMATTAZIONE SOLDI
+  */
+
   function formatMoney(value) {
     return Number(value || 0).toLocaleString(
       "it-IT",
@@ -133,7 +167,10 @@ export default function Home() {
     );
   }
 
-  // CARICAMENTO
+  /*
+    SCHERMATA CARICAMENTO
+  */
+
   if (loading) {
     return (
       <main className="loadingPage">
@@ -149,9 +186,7 @@ export default function Home() {
 
       <div className="overlay">
 
-        {/* ==============================
-            SIDEBAR
-        ============================== */}
+        {/* SIDEBAR */}
 
         <aside className="sidebar">
 
@@ -162,17 +197,12 @@ export default function Home() {
 
           <nav>
 
-            {/* DASHBOARD */}
-
             <button className="active">
               <span className="navIcon">
                 ⌂
               </span>
-
               Dashboard
             </button>
-
-            {/* FATTURE */}
 
             <button
               onClick={() =>
@@ -182,11 +212,8 @@ export default function Home() {
               <span className="navIcon">
                 ▤
               </span>
-
               Fatture
             </button>
-
-            {/* IMPORT */}
 
             <button
               onClick={() =>
@@ -196,15 +223,10 @@ export default function Home() {
               <span className="navIcon">
                 ◇
               </span>
-
               Import
             </button>
 
-            {/* STIPENDI
-                VISIBILE SOLO AGLI ADMIN */}
-
             {profile?.ruolo === "admin" && (
-
               <button
                 onClick={() =>
                   router.push("/stipendi")
@@ -213,35 +235,22 @@ export default function Home() {
                 <span className="navIcon">
                   ♙
                 </span>
-
                 Stipendi
               </button>
-
             )}
 
           </nav>
 
           <div className="sidebarBottom">
-
-            <p>
-              Gestionale AQUA BAR
-            </p>
-
-            <small>
-              FiveM Management
-            </small>
-
+            <p>Gestionale AQUA BAR</p>
+            <small>FiveM Management</small>
           </div>
 
         </aside>
 
-        {/* ==============================
-            CONTENUTO
-        ============================== */}
+        {/* CONTENUTO */}
 
         <section className="content">
-
-          {/* HEADER */}
 
           <header>
 
@@ -256,8 +265,7 @@ export default function Home() {
               </h2>
 
               <p className="subtitle">
-                Benvenuto nel gestionale
-                del locale
+                Benvenuto nel gestionale del locale
               </p>
 
             </div>
@@ -267,18 +275,15 @@ export default function Home() {
             <div className="user">
 
               <div className="avatar">
-
                 {profile?.nome
                   ?.charAt(0)
                   .toUpperCase() || "A"}
-
               </div>
 
               <div className="userInfo">
 
                 <strong>
-                  {profile?.nome ||
-                    "Utente"}
+                  {profile?.nome || "Utente"}
                 </strong>
 
                 <span>
@@ -304,9 +309,7 @@ export default function Home() {
 
           </header>
 
-          {/* ==============================
-              CARDS DASHBOARD
-          ============================== */}
+          {/* CARDS */}
 
           <div className="cards">
 
@@ -325,10 +328,7 @@ export default function Home() {
                 </span>
 
                 <h3>
-                  $
-                  {formatMoney(
-                    saldo
-                  )}
+                  ${formatMoney(saldo)}
                 </h3>
 
                 <p>
@@ -339,7 +339,7 @@ export default function Home() {
 
             </div>
 
-            {/* FATTURATO PERSONALE */}
+            {/* FATTURATO */}
 
             <div className="card">
 
@@ -354,10 +354,7 @@ export default function Home() {
                 </span>
 
                 <h3>
-                  $
-                  {formatMoney(
-                    fatturato
-                  )}
+                  ${formatMoney(fatturato)}
                 </h3>
 
                 <p>
@@ -368,7 +365,7 @@ export default function Home() {
 
             </div>
 
-            {/* TOTALE IMPORT */}
+            {/* IMPORT */}
 
             <div className="card">
 
@@ -383,10 +380,7 @@ export default function Home() {
                 </span>
 
                 <h3>
-                  $
-                  {formatMoney(
-                    totaleImport
-                  )}
+                  ${formatMoney(totaleImport)}
                 </h3>
 
                 <p>
@@ -399,9 +393,7 @@ export default function Home() {
 
           </div>
 
-          {/* ==============================
-              BENVENUTO
-          ============================== */}
+          {/* BENVENUTO */}
 
           <div className="welcome">
 
