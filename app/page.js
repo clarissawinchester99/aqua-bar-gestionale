@@ -55,9 +55,10 @@ export default function Home() {
     }
 
     const { data: invoiceData, error: invoiceError } = await supabase
-      .from("invoices")
-      .select("totale")
-      .eq("employee_id", user.id);
+     .from("imports")
+.select("totale")
+.eq("employee_id", user.id)
+.eq("annullato", false);
 
     if (invoiceError) {
       console.error("Errore fatturato:", invoiceError);
