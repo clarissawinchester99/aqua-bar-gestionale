@@ -207,18 +207,13 @@ export default function FatturePage() {
     );
 
     if (!product) {
-      setMessage(
-        "Seleziona un prodotto."
-      );
+      setMessage("Seleziona un prodotto.");
       return;
     }
 
     const qty = Number(quantity);
 
-    if (
-      !Number.isInteger(qty) ||
-      qty < 1
-    ) {
+    if (!Number.isInteger(qty) || qty < 1) {
       setMessage(
         "Inserisci una quantità valida."
       );
@@ -235,15 +230,12 @@ export default function FatturePage() {
       return;
     }
 
-    const prezzo =
-      Number(product.prezzo);
+    const prezzo = Number(product.prezzo);
 
     const nuovaFattura = {
       localId:
         Date.now().toString() +
-        Math.random()
-          .toString(36)
-          .slice(2),
+        Math.random().toString(36).slice(2),
 
       product_id: product.id,
       nome: product.nome,
@@ -279,6 +271,19 @@ export default function FatturePage() {
     );
   }, [cart]);
 
+  /*
+    =====================================
+    REGISTRAZIONE FATTURE
+    =====================================
+
+    Ora utilizza registra_fattura.
+
+    Supabase:
+    - crea la fattura
+    - crea invoice_items
+    - aggiunge il totale al Fondo Cassa
+  */
+
   async function confirmInvoices() {
     if (
       !user ||
@@ -294,45 +299,23 @@ export default function FatturePage() {
 
     try {
       for (const invoice of cart) {
-        const {
-          data: createdInvoice,
-          error: invoiceError,
-        } = await supabase
-          .from("invoices")
-          .insert({
-            employee_id: user.id,
-            totale: invoice.totale,
-          })
-          .select("id")
-          .single();
+        const { error } =
+          await supabase.rpc(
+            "registra_fattura",
+            {
+              p_product_id:
+                invoice.product_id,
 
-        if (invoiceError) {
-          throw invoiceError;
-        }
+              p_quantita:
+                invoice.quantita,
 
-        const {
-          error: itemError,
-        } = await supabase
-          .from("invoice_items")
-          .insert({
-            invoice_id:
-              createdInvoice.id,
+              p_prezzo_unitario:
+                invoice.prezzo_unitario,
+            }
+          );
 
-            product_id:
-              invoice.product_id,
-
-            quantita:
-              invoice.quantita,
-
-            prezzo_unitario:
-              invoice.prezzo_unitario,
-
-            subtotale:
-              invoice.totale,
-          });
-
-        if (itemError) {
-          throw itemError;
+        if (error) {
+          throw error;
         }
       }
 
@@ -343,8 +326,8 @@ export default function FatturePage() {
 
       setMessage(
         numeroFatture === 1
-          ? "Fattura registrata con successo!"
-          : `${numeroFatture} fatture registrate con successo!`
+          ? "Fattura registrata con successo! Il Fondo Cassa è stato aggiornato."
+          : `${numeroFatture} fatture registrate con successo! Il Fondo Cassa è stato aggiornato.`
       );
 
       setSuccess(true);
@@ -359,14 +342,23 @@ export default function FatturePage() {
       setMessage(
         "Si è verificato un errore durante la registrazione delle fatture."
       );
+    } finally {
+      setSaving(false);
     }
-
-    setSaving(false);
   }
 
-  async function cancelInvoice(
-    invoice
-  ) {
+  /*
+    =====================================
+    ANNULLAMENTO FATTURA
+    =====================================
+
+    Supabase:
+    - segna la fattura come annullata
+    - la esclude dal fatturato
+    - sottrae il totale dal Fondo Cassa
+  */
+
+  async function cancelInvoice(invoice) {
     if (
       invoice.annullato ||
       cancellingId
@@ -393,28 +385,23 @@ export default function FatturePage() {
           `Totale: $${formatMoney(
             invoice.totale
           )}\n\n` +
-          `La fattura verrà esclusa dal fatturato personale.`
+          `La fattura verrà esclusa dal fatturato personale e il totale verrà sottratto dal Fondo Cassa.`
       );
 
     if (!confirmed) return;
 
-    setCancellingId(
-      invoice.id
-    );
-
+    setCancellingId(invoice.id);
     setMessage("");
     setSuccess(false);
 
-    const {
-      data,
-      error,
-    } = await supabase.rpc(
-      "annulla_fattura",
-      {
-        p_invoice_id:
-          invoice.id,
-      }
-    );
+    const { data, error } =
+      await supabase.rpc(
+        "annulla_fattura",
+        {
+          p_invoice_id:
+            invoice.id,
+        }
+      );
 
     if (error) {
       console.error(
@@ -433,7 +420,7 @@ export default function FatturePage() {
     setMessage(
       `Fattura #${invoice.id} annullata. $${formatMoney(
         data?.totale_annullato
-      )} esclusi dal fatturato.`
+      )} sottratti dal Fondo Cassa e dal fatturato.`
     );
 
     setSuccess(true);
@@ -464,7 +451,9 @@ export default function FatturePage() {
 
       <div className="overlay">
 
-        {/* SIDEBAR */}
+        {/* =========================
+            SIDEBAR
+        ========================= */}
 
         <aside className="sidebar">
 
@@ -488,18 +477,18 @@ export default function FatturePage() {
             </button>
 
             <button className="active">
+
               <span className="navIcon">
                 ▤
               </span>
 
               Fatture
+
             </button>
 
             <button
               onClick={() =>
-                router.push(
-                  "/import"
-                )
+                router.push("/import")
               }
             >
               <span className="navIcon">
@@ -519,11 +508,13 @@ export default function FatturePage() {
                   )
                 }
               >
+
                 <span className="navIcon">
                   ♙
                 </span>
 
                 Stipendi
+
               </button>
 
             )}
@@ -544,7 +535,9 @@ export default function FatturePage() {
 
         </aside>
 
-        {/* CONTENUTO */}
+        {/* =========================
+            CONTENUTO
+        ========================= */}
 
         <section className="content">
 
@@ -612,11 +605,11 @@ export default function FatturePage() {
 
           </header>
 
-          {/* NUOVA FATTURA + CARRELLO */}
+          {/* =========================
+              NUOVA FATTURA
+          ========================= */}
 
           <div className="invoiceLayout">
-
-            {/* NUOVA FATTURA */}
 
             <div className="invoicePanel">
 
@@ -694,9 +687,7 @@ export default function FatturePage() {
 
                 <button
                   className="invoicePrimaryButton"
-                  onClick={
-                    addToCart
-                  }
+                  onClick={addToCart}
                 >
                   + AGGIUNGI AL CARRELLO
                 </button>
@@ -705,7 +696,9 @@ export default function FatturePage() {
 
             </div>
 
-            {/* CARRELLO */}
+            {/* =========================
+                CARRELLO
+            ========================= */}
 
             <div className="cartPanel">
 
@@ -782,6 +775,7 @@ export default function FatturePage() {
                               </span>
 
                               <span>
+
                                 $
                                 {formatMoney(
                                   invoice.prezzo_unitario
@@ -790,6 +784,7 @@ export default function FatturePage() {
                                 {
                                   invoice.quantita
                                 }
+
                               </span>
 
                             </div>
@@ -797,10 +792,12 @@ export default function FatturePage() {
                             <div className="cartItemRight">
 
                               <strong>
+
                                 $
                                 {formatMoney(
                                   invoice.totale
                                 )}
+
                               </strong>
 
                               <button
@@ -828,10 +825,12 @@ export default function FatturePage() {
                         </span>
 
                         <strong>
+
                           $
                           {formatMoney(
                             grandTotal
                           )}
+
                         </strong>
 
                       </div>
@@ -867,7 +866,9 @@ export default function FatturePage() {
 
           </div>
 
-          {/* MESSAGGI */}
+          {/* =========================
+              MESSAGGI
+          ========================= */}
 
           {message && (
 
@@ -883,7 +884,9 @@ export default function FatturePage() {
 
           )}
 
-          {/* STORICO FATTURE */}
+          {/* =========================
+              STORICO FATTURE
+          ========================= */}
 
           <div className="invoiceHistory">
 
@@ -943,25 +946,31 @@ export default function FatturePage() {
                         <div className="invoiceHistoryMain">
 
                           <div className="invoiceNumber">
+
                             #
                             {
                               invoice.id
                             }
+
                           </div>
 
                           <div>
 
                             <strong>
+
                               {item
                                 ?.products
                                 ?.nome ||
                                 "Fattura AQUA BAR"}
+
                             </strong>
 
                             <p>
+
                               {formatDate(
                                 invoice.created_at
                               )}
+
                             </p>
 
                           </div>
@@ -973,25 +982,33 @@ export default function FatturePage() {
                         <div className="invoiceHistoryDetails">
 
                           <span>
+
                             QUANTITÀ
 
                             <strong>
+
                               {item
                                 ?.quantita ||
                                 0}
+
                             </strong>
+
                           </span>
 
                           <span>
+
                             PREZZO
 
                             <strong>
+
                               $
                               {formatMoney(
                                 item
                                   ?.prezzo_unitario
                               )}
+
                             </strong>
+
                           </span>
 
                         </div>
@@ -1005,10 +1022,12 @@ export default function FatturePage() {
                           </small>
 
                           <strong>
+
                             $
                             {formatMoney(
                               invoice.totale
                             )}
+
                           </strong>
 
                         </div>
