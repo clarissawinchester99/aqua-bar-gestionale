@@ -31,46 +31,107 @@ export default function FatturePage() {
   async function loadPage() {
     setLoading(true);
 
-    const {
-      data: { user: currentUser },
-      error: userError,
-    } = await supabase.auth.getUser();
+    try {
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
 
-    if (userError || !currentUser) {
-      router.replace("/login");
-      return;
-    }
-
-    setUser(currentUser);
-
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("nome, ruolo")
-      .eq("id", currentUser.id)
-      .single();
-
-    setProfile(profileData);
-
-    const { data: productData, error: productError } =
-      await supabase
-        .from("products")
-        .select("id, nome, prezzo")
-        .eq("attivo", true)
-        .order("id");
-
-    if (productError) {
-      console.error(productError);
-    } else {
-      setProducts(productData || []);
-
-      if (productData?.length) {
-        setSelectedProduct(String(productData[0].id));
+      if (sessionError || !session?.user) {
+        router.replace("/login");
+        return;
       }
+
+      const currentUser = session.user;
+
+      setUser(currentUser);
+
+      const [
+        profileResult,
+        productResult,
+        historyResult,
+      ] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("nome, ruolo")
+          .eq("id", currentUser.id)
+          .single(),
+
+        supabase
+          .from("products")
+          .select("id, nome, prezzo")
+          .eq("attivo", true)
+          .order("id"),
+
+        supabase
+          .from("invoices")
+          .select(`
+            id,
+            totale,
+            created_at,
+            annullato,
+            annullato_at,
+            invoice_items (
+              id,
+              quantita,
+              prezzo_unitario,
+              subtotale,
+              products (
+                nome
+              )
+            )
+          `)
+          .eq("employee_id", currentUser.id)
+          .order("created_at", {
+            ascending: false,
+          }),
+      ]);
+
+      if (profileResult.error) {
+        console.error(
+          "Errore profilo:",
+          profileResult.error
+        );
+      } else {
+        setProfile(profileResult.data);
+      }
+
+      if (productResult.error) {
+        console.error(
+          "Errore prodotti:",
+          productResult.error
+        );
+      } else {
+        const productData =
+          productResult.data || [];
+
+        setProducts(productData);
+
+        if (productData.length) {
+          setSelectedProduct(
+            String(productData[0].id)
+          );
+        }
+      }
+
+      if (historyResult.error) {
+        console.error(
+          "Errore storico fatture:",
+          historyResult.error
+        );
+      } else {
+        setHistory(
+          historyResult.data || []
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Errore caricamento Fatture:",
+        error
+      );
+    } finally {
+      setLoading(false);
     }
-
-    await loadHistory(currentUser.id);
-
-    setLoading(false);
   }
 
   async function loadHistory(userId = user?.id) {
@@ -100,7 +161,10 @@ export default function FatturePage() {
       });
 
     if (error) {
-      console.error("Errore storico fatture:", error);
+      console.error(
+        "Errore storico fatture:",
+        error
+      );
       return;
     }
 
@@ -108,22 +172,28 @@ export default function FatturePage() {
   }
 
   function formatMoney(value) {
-    return Number(value || 0).toLocaleString("it-IT", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    });
+    return Number(value || 0).toLocaleString(
+      "it-IT",
+      {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }
+    );
   }
 
   function formatDate(value) {
     if (!value) return "-";
 
-    return new Date(value).toLocaleString("it-IT", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return new Date(value).toLocaleString(
+      "it-IT",
+      {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }
+    );
   }
 
   function addToCart() {
@@ -132,18 +202,26 @@ export default function FatturePage() {
 
     const product = products.find(
       (item) =>
-        String(item.id) === String(selectedProduct)
+        String(item.id) ===
+        String(selectedProduct)
     );
 
     if (!product) {
-      setMessage("Seleziona un prodotto.");
+      setMessage(
+        "Seleziona un prodotto."
+      );
       return;
     }
 
     const qty = Number(quantity);
 
-    if (!Number.isInteger(qty) || qty < 1) {
-      setMessage("Inserisci una quantità valida.");
+    if (
+      !Number.isInteger(qty) ||
+      qty < 1
+    ) {
+      setMessage(
+        "Inserisci una quantità valida."
+      );
       return;
     }
 
@@ -157,12 +235,15 @@ export default function FatturePage() {
       return;
     }
 
-    const prezzo = Number(product.prezzo);
+    const prezzo =
+      Number(product.prezzo);
 
     const nuovaFattura = {
       localId:
         Date.now().toString() +
-        Math.random().toString(36).slice(2),
+        Math.random()
+          .toString(36)
+          .slice(2),
 
       product_id: product.id,
       nome: product.nome,
@@ -183,7 +264,8 @@ export default function FatturePage() {
   function removeFromCart(localId) {
     setCart((current) =>
       current.filter(
-        (invoice) => invoice.localId !== localId
+        (invoice) =>
+          invoice.localId !== localId
       )
     );
   }
@@ -191,13 +273,18 @@ export default function FatturePage() {
   const grandTotal = useMemo(() => {
     return cart.reduce(
       (sum, invoice) =>
-        sum + Number(invoice.totale || 0),
+        sum +
+        Number(invoice.totale || 0),
       0
     );
   }, [cart]);
 
   async function confirmInvoices() {
-    if (!user || cart.length === 0 || saving) {
+    if (
+      !user ||
+      cart.length === 0 ||
+      saving
+    ) {
       return;
     }
 
@@ -223,15 +310,25 @@ export default function FatturePage() {
           throw invoiceError;
         }
 
-        const { error: itemError } = await supabase
+        const {
+          error: itemError,
+        } = await supabase
           .from("invoice_items")
           .insert({
-            invoice_id: createdInvoice.id,
-            product_id: invoice.product_id,
-            quantita: invoice.quantita,
+            invoice_id:
+              createdInvoice.id,
+
+            product_id:
+              invoice.product_id,
+
+            quantita:
+              invoice.quantita,
+
             prezzo_unitario:
               invoice.prezzo_unitario,
-            subtotale: invoice.totale,
+
+            subtotale:
+              invoice.totale,
           });
 
         if (itemError) {
@@ -239,7 +336,8 @@ export default function FatturePage() {
         }
       }
 
-      const numeroFatture = cart.length;
+      const numeroFatture =
+        cart.length;
 
       setCart([]);
 
@@ -266,38 +364,55 @@ export default function FatturePage() {
     setSaving(false);
   }
 
-  async function cancelInvoice(invoice) {
-    if (invoice.annullato || cancellingId) {
+  async function cancelInvoice(
+    invoice
+  ) {
+    if (
+      invoice.annullato ||
+      cancellingId
+    ) {
       return;
     }
 
-    const item = invoice.invoice_items?.[0];
+    const item =
+      invoice.invoice_items?.[0];
 
     const prodotto =
-      item?.products?.nome || "Prodotto";
+      item?.products?.nome ||
+      "Prodotto";
 
     const quantita =
       item?.quantita || 0;
 
-    const confirmed = window.confirm(
-      `Vuoi annullare questa fattura?\n\n` +
-        `Fattura: #${invoice.id}\n` +
-        `Prodotto: ${prodotto}\n` +
-        `Quantità: ${quantita}\n` +
-        `Totale: $${formatMoney(invoice.totale)}\n\n` +
-        `La fattura verrà esclusa dal fatturato personale.`
-    );
+    const confirmed =
+      window.confirm(
+        `Vuoi annullare questa fattura?\n\n` +
+          `Fattura: #${invoice.id}\n` +
+          `Prodotto: ${prodotto}\n` +
+          `Quantità: ${quantita}\n` +
+          `Totale: $${formatMoney(
+            invoice.totale
+          )}\n\n` +
+          `La fattura verrà esclusa dal fatturato personale.`
+      );
 
     if (!confirmed) return;
 
-    setCancellingId(invoice.id);
+    setCancellingId(
+      invoice.id
+    );
+
     setMessage("");
     setSuccess(false);
 
-    const { data, error } = await supabase.rpc(
+    const {
+      data,
+      error,
+    } = await supabase.rpc(
       "annulla_fattura",
       {
-        p_invoice_id: invoice.id,
+        p_invoice_id:
+          invoice.id,
       }
     );
 
@@ -330,6 +445,7 @@ export default function FatturePage() {
 
   async function logout() {
     await supabase.auth.signOut();
+
     router.replace("/login");
   }
 
@@ -360,11 +476,14 @@ export default function FatturePage() {
           <nav>
 
             <button
-              onClick={() => router.push("/")}
+              onClick={() =>
+                router.push("/")
+              }
             >
               <span className="navIcon">
                 ⌂
               </span>
+
               Dashboard
             </button>
 
@@ -372,38 +491,55 @@ export default function FatturePage() {
               <span className="navIcon">
                 ▤
               </span>
+
               Fatture
             </button>
 
             <button
-              onClick={() => router.push("/import")}
+              onClick={() =>
+                router.push(
+                  "/import"
+                )
+              }
             >
               <span className="navIcon">
                 ◇
               </span>
+
               Import
             </button>
 
-            {/* VISIBILE SOLO AGLI ADMIN */}
+            {profile?.ruolo ===
+              "admin" && (
 
-            {profile?.ruolo === "admin" && (
               <button
                 onClick={() =>
-                  router.push("/stipendi")
+                  router.push(
+                    "/stipendi"
+                  )
                 }
               >
                 <span className="navIcon">
                   ♙
                 </span>
+
                 Stipendi
               </button>
+
             )}
 
           </nav>
 
           <div className="sidebarBottom">
-            <p>Gestionale AQUA BAR</p>
-            <small>FiveM Management</small>
+
+            <p>
+              Gestionale AQUA BAR
+            </p>
+
+            <small>
+              FiveM Management
+            </small>
+
           </div>
 
         </aside>
@@ -411,6 +547,8 @@ export default function FatturePage() {
         {/* CONTENUTO */}
 
         <section className="content">
+
+          {/* HEADER */}
 
           <header>
 
@@ -420,7 +558,9 @@ export default function FatturePage() {
                 AQUA BAR
               </p>
 
-              <h2>Fatture</h2>
+              <h2>
+                Fatture
+              </h2>
 
               <p className="subtitle">
                 Registra le tue vendite
@@ -428,26 +568,35 @@ export default function FatturePage() {
 
             </div>
 
+            {/* UTENTE */}
+
             <div className="user">
 
               <div className="avatar">
+
                 {profile?.nome
                   ?.charAt(0)
-                  .toUpperCase() || "A"}
+                  .toUpperCase() ||
+                  "A"}
+
               </div>
 
               <div className="userInfo">
 
                 <strong>
-                  {profile?.nome || "Utente"}
+                  {profile?.nome ||
+                    "Utente"}
                 </strong>
 
                 <span>
+
                   <i className="onlineDot"></i>
 
-                  {profile?.ruolo === "admin"
+                  {profile?.ruolo ===
+                  "admin"
                     ? "Amministratore"
                     : "Dipendente"}
+
                 </span>
 
               </div>
@@ -467,20 +616,28 @@ export default function FatturePage() {
 
           <div className="invoiceLayout">
 
+            {/* NUOVA FATTURA */}
+
             <div className="invoicePanel">
 
               <p className="welcomeLabel">
                 NUOVA FATTURA
               </p>
 
-              <h2>Aggiungi fattura</h2>
+              <h2>
+                Aggiungi fattura
+              </h2>
 
               <div className="invoiceForm">
 
-                <label>Prodotto</label>
+                <label>
+                  Prodotto
+                </label>
 
                 <select
-                  value={selectedProduct}
+                  value={
+                    selectedProduct
+                  }
                   onChange={(e) =>
                     setSelectedProduct(
                       e.target.value
@@ -488,26 +645,37 @@ export default function FatturePage() {
                   }
                 >
 
-                  {products.map((product) => (
+                  {products.map(
+                    (product) => (
 
-                    <option
-                      key={product.id}
-                      value={product.id}
-                    >
-                      {product.nome}
+                      <option
+                        key={
+                          product.id
+                        }
+                        value={
+                          product.id
+                        }
+                      >
 
-                      {product.prezzo !== null
-                        ? ` — $${formatMoney(
-                            product.prezzo
-                          )}`
-                        : " — prezzo da impostare"}
-                    </option>
+                        {product.nome}
 
-                  ))}
+                        {product.prezzo !==
+                        null
+                          ? ` — $${formatMoney(
+                              product.prezzo
+                            )}`
+                          : " — prezzo da impostare"}
+
+                      </option>
+
+                    )
+                  )}
 
                 </select>
 
-                <label>Quantità</label>
+                <label>
+                  Quantità
+                </label>
 
                 <input
                   type="number"
@@ -515,7 +683,9 @@ export default function FatturePage() {
                   step="1"
                   value={quantity}
                   onChange={(e) =>
-                    setQuantity(e.target.value)
+                    setQuantity(
+                      e.target.value
+                    )
                   }
                   onFocus={(e) =>
                     e.target.select()
@@ -524,7 +694,9 @@ export default function FatturePage() {
 
                 <button
                   className="invoicePrimaryButton"
-                  onClick={addToCart}
+                  onClick={
+                    addToCart
+                  }
                 >
                   + AGGIUNGI AL CARRELLO
                 </button>
@@ -540,19 +712,24 @@ export default function FatturePage() {
               <button
                 className="cartHeader"
                 onClick={() =>
-                  setCartOpen(!cartOpen)
+                  setCartOpen(
+                    !cartOpen
+                  )
                 }
               >
 
                 <span>
-                  CARRELLO — {cart.length}{" "}
+                  CARRELLO —{" "}
+                  {cart.length}{" "}
                   {cart.length === 1
                     ? "FATTURA"
                     : "FATTURE"}
                 </span>
 
                 <strong>
-                  {cartOpen ? "▲" : "▼"}
+                  {cartOpen
+                    ? "▲"
+                    : "▼"}
                 </strong>
 
               </button>
@@ -572,26 +749,36 @@ export default function FatturePage() {
                     <>
 
                       {cart.map(
-                        (invoice, index) => (
+                        (
+                          invoice,
+                          index
+                        ) => (
 
                           <div
                             className="cartItem"
-                            key={invoice.localId}
+                            key={
+                              invoice.localId
+                            }
                           >
 
                             <div>
 
                               <span>
-                                FATTURA #{index + 1}
+                                FATTURA #
+                                {index + 1}
                               </span>
 
                               <strong>
-                                {invoice.nome}
+                                {
+                                  invoice.nome
+                                }
                               </strong>
 
                               <span>
                                 Quantità:{" "}
-                                {invoice.quantita}
+                                {
+                                  invoice.quantita
+                                }
                               </span>
 
                               <span>
@@ -599,7 +786,10 @@ export default function FatturePage() {
                                 {formatMoney(
                                   invoice.prezzo_unitario
                                 )}{" "}
-                                × {invoice.quantita}
+                                ×{" "}
+                                {
+                                  invoice.quantita
+                                }
                               </span>
 
                             </div>
@@ -648,13 +838,18 @@ export default function FatturePage() {
 
                       <button
                         className="invoiceConfirmButton"
-                        onClick={confirmInvoices}
-                        disabled={saving}
+                        onClick={
+                          confirmInvoices
+                        }
+                        disabled={
+                          saving
+                        }
                       >
 
                         {saving
                           ? "REGISTRAZIONE..."
-                          : cart.length === 1
+                          : cart.length ===
+                            1
                           ? "CONFERMA FATTURA"
                           : `CONFERMA ${cart.length} FATTURE`}
 
@@ -688,9 +883,7 @@ export default function FatturePage() {
 
           )}
 
-          {/* ============================
-              STORICO FATTURE
-          ============================ */}
+          {/* STORICO FATTURE */}
 
           <div className="invoiceHistory">
 
@@ -709,7 +902,8 @@ export default function FatturePage() {
               </div>
 
               <span>
-                {history.length} fatture
+                {history.length}{" "}
+                fatture
               </span>
 
             </div>
@@ -724,128 +918,142 @@ export default function FatturePage() {
 
               <div className="invoiceHistoryList">
 
-                {history.map((invoice) => {
+                {history.map(
+                  (invoice) => {
 
-                  const item =
-                    invoice.invoice_items?.[0];
+                    const item =
+                      invoice
+                        .invoice_items?.[0];
 
-                  return (
+                    return (
 
-                    <div
-                      className={`invoiceHistoryItem ${
-                        invoice.annullato
-                          ? "cancelled"
-                          : ""
-                      }`}
-                      key={invoice.id}
-                    >
+                      <div
+                        className={`invoiceHistoryItem ${
+                          invoice.annullato
+                            ? "cancelled"
+                            : ""
+                        }`}
+                        key={
+                          invoice.id
+                        }
+                      >
 
-                      {/* NUMERO E PRODOTTO */}
+                        {/* NUMERO E PRODOTTO */}
 
-                      <div className="invoiceHistoryMain">
+                        <div className="invoiceHistoryMain">
 
-                        <div className="invoiceNumber">
-                          #{invoice.id}
+                          <div className="invoiceNumber">
+                            #
+                            {
+                              invoice.id
+                            }
+                          </div>
+
+                          <div>
+
+                            <strong>
+                              {item
+                                ?.products
+                                ?.nome ||
+                                "Fattura AQUA BAR"}
+                            </strong>
+
+                            <p>
+                              {formatDate(
+                                invoice.created_at
+                              )}
+                            </p>
+
+                          </div>
+
                         </div>
 
-                        <div>
+                        {/* QUANTITÀ E PREZZO */}
 
-                          <strong>
-                            {item?.products?.nome ||
-                              "Fattura AQUA BAR"}
-                          </strong>
+                        <div className="invoiceHistoryDetails">
 
-                          <p>
-                            {formatDate(
-                              invoice.created_at
-                            )}
-                          </p>
+                          <span>
+                            QUANTITÀ
+
+                            <strong>
+                              {item
+                                ?.quantita ||
+                                0}
+                            </strong>
+                          </span>
+
+                          <span>
+                            PREZZO
+
+                            <strong>
+                              $
+                              {formatMoney(
+                                item
+                                  ?.prezzo_unitario
+                              )}
+                            </strong>
+                          </span>
 
                         </div>
 
-                      </div>
+                        {/* TOTALE */}
 
-                      {/* QUANTITÀ E PREZZO */}
+                        <div className="invoiceHistoryTotal">
 
-                      <div className="invoiceHistoryDetails">
-
-                        <span>
-                          QUANTITÀ
-
-                          <strong>
-                            {item?.quantita || 0}
-                          </strong>
-                        </span>
-
-                        <span>
-                          PREZZO
+                          <small>
+                            TOTALE
+                          </small>
 
                           <strong>
                             $
                             {formatMoney(
-                              item?.prezzo_unitario
+                              invoice.totale
                             )}
                           </strong>
-                        </span>
 
-                      </div>
+                        </div>
 
-                      {/* TOTALE */}
+                        {/* ANNULLAMENTO */}
 
-                      <div className="invoiceHistoryTotal">
+                        <div className="invoiceHistoryAction">
 
-                        <small>
-                          TOTALE
-                        </small>
+                          {invoice.annullato ? (
 
-                        <strong>
-                          $
-                          {formatMoney(
-                            invoice.totale
-                          )}
-                        </strong>
+                            <span className="cancelledBadge">
+                              ANNULLATA
+                            </span>
 
-                      </div>
+                          ) : (
 
-                      {/* ANNULLAMENTO */}
+                            <button
+                              className="cancelInvoiceButton"
+                              onClick={() =>
+                                cancelInvoice(
+                                  invoice
+                                )
+                              }
+                              disabled={
+                                cancellingId ===
+                                invoice.id
+                              }
+                            >
 
-                      <div className="invoiceHistoryAction">
-
-                        {invoice.annullato ? (
-
-                          <span className="cancelledBadge">
-                            ANNULLATA
-                          </span>
-
-                        ) : (
-
-                          <button
-                            className="cancelInvoiceButton"
-                            onClick={() =>
-                              cancelInvoice(invoice)
-                            }
-                            disabled={
-                              cancellingId ===
+                              {cancellingId ===
                               invoice.id
-                            }
-                          >
+                                ? "ANNULLAMENTO..."
+                                : "ANNULLA FATTURA"}
 
-                            {cancellingId ===
-                            invoice.id
-                              ? "ANNULLAMENTO..."
-                              : "ANNULLA FATTURA"}
+                            </button>
 
-                          </button>
+                          )}
 
-                        )}
+                        </div>
 
                       </div>
 
-                    </div>
-
-                  );
-
-                })}
+                    );
+                  }
+                )}
 
               </div>
 
