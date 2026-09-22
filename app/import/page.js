@@ -20,7 +20,9 @@ export default function ImportPage() {
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
 
-  const totale = (kitCibo + kitBevande) * PREZZO_KIT;
+  const totale =
+    (Number(kitCibo || 0) + Number(kitBevande || 0)) *
+    PREZZO_KIT;
 
   useEffect(() => {
     loadPage();
@@ -79,21 +81,42 @@ export default function ImportPage() {
     });
   }
 
-  function changeQuantity(type, amount) {
+  function handleCiboChange(e) {
+    const value = e.target.value;
+
     setMessage("");
     setSuccess(false);
 
-    if (type === "cibo") {
-      setKitCibo((current) =>
-        Math.max(0, current + amount)
-      );
+    if (value === "") {
+      setKitCibo("");
+      return;
     }
 
-    if (type === "bevande") {
-      setKitBevande((current) =>
-        Math.max(0, current + amount)
-      );
+    const number = Math.max(
+      0,
+      Math.floor(Number(value))
+    );
+
+    setKitCibo(number);
+  }
+
+  function handleBevandeChange(e) {
+    const value = e.target.value;
+
+    setMessage("");
+    setSuccess(false);
+
+    if (value === "") {
+      setKitBevande("");
+      return;
     }
+
+    const number = Math.max(
+      0,
+      Math.floor(Number(value))
+    );
+
+    setKitBevande(number);
   }
 
   async function confirmImport() {
@@ -102,8 +125,11 @@ export default function ImportPage() {
     setMessage("");
     setSuccess(false);
 
-    if (kitCibo === 0 && kitBevande === 0) {
-      setMessage("Seleziona almeno un kit.");
+    const cibo = Number(kitCibo || 0);
+    const bevande = Number(kitBevande || 0);
+
+    if (cibo === 0 && bevande === 0) {
+      setMessage("Inserisci almeno una quantità.");
       return;
     }
 
@@ -117,8 +143,8 @@ export default function ImportPage() {
     const { data, error } = await supabase.rpc(
       "registra_import",
       {
-        p_kit_cibo: kitCibo,
-        p_kit_bevande: kitBevande,
+        p_kit_cibo: cibo,
+        p_kit_bevande: bevande,
       }
     );
 
@@ -149,7 +175,9 @@ export default function ImportPage() {
       await loadSaldo();
     }
 
-    const totalePagato = Number(data?.totale || totale);
+    const totalePagato = Number(
+      data?.totale || totale
+    );
 
     setKitCibo(0);
     setKitBevande(0);
@@ -192,13 +220,17 @@ export default function ImportPage() {
 
           <nav>
 
-            <button onClick={() => router.push("/")}>
+            <button
+              onClick={() => router.push("/")}
+            >
               <span className="navIcon">⌂</span>
               Dashboard
             </button>
 
             <button
-              onClick={() => router.push("/fatture")}
+              onClick={() =>
+                router.push("/fatture")
+              }
             >
               <span className="navIcon">▤</span>
               Fatture
@@ -223,7 +255,9 @@ export default function ImportPage() {
           <header>
 
             <div>
-              <p className="eyebrow">AQUA BAR</p>
+              <p className="eyebrow">
+                AQUA BAR
+              </p>
 
               <h2>Import</h2>
 
@@ -270,7 +304,9 @@ export default function ImportPage() {
           <div className="importTopCard">
 
             <div>
-              <span>FONDO CASSA DISPONIBILE</span>
+              <span>
+                FONDO CASSA DISPONIBILE
+              </span>
 
               <h3>
                 ${formatMoney(saldo)}
@@ -285,6 +321,8 @@ export default function ImportPage() {
           </div>
 
           <div className="importGrid">
+
+            {/* KIT CIBO */}
 
             <div className="importKitCard">
 
@@ -303,29 +341,21 @@ export default function ImportPage() {
                 <span> / kit</span>
               </p>
 
-              <div className="quantityControl">
+              <label className="quantityLabel">
+                QUANTITÀ
+              </label>
 
-                <button
-                  onClick={() =>
-                    changeQuantity("cibo", -1)
-                  }
-                >
-                  −
-                </button>
-
-                <strong>
-                  {kitCibo}
-                </strong>
-
-                <button
-                  onClick={() =>
-                    changeQuantity("cibo", 1)
-                  }
-                >
-                  +
-                </button>
-
-              </div>
+              <input
+                className="quantityInput"
+                type="number"
+                min="0"
+                step="1"
+                inputMode="numeric"
+                value={kitCibo}
+                onChange={handleCiboChange}
+                onFocus={(e) => e.target.select()}
+                placeholder="0"
+              />
 
               <div className="kitSubtotal">
 
@@ -334,13 +364,16 @@ export default function ImportPage() {
                 <strong>
                   $
                   {formatMoney(
-                    kitCibo * PREZZO_KIT
+                    Number(kitCibo || 0) *
+                      PREZZO_KIT
                   )}
                 </strong>
 
               </div>
 
             </div>
+
+            {/* KIT BEVANDE */}
 
             <div className="importKitCard">
 
@@ -359,29 +392,21 @@ export default function ImportPage() {
                 <span> / kit</span>
               </p>
 
-              <div className="quantityControl">
+              <label className="quantityLabel">
+                QUANTITÀ
+              </label>
 
-                <button
-                  onClick={() =>
-                    changeQuantity("bevande", -1)
-                  }
-                >
-                  −
-                </button>
-
-                <strong>
-                  {kitBevande}
-                </strong>
-
-                <button
-                  onClick={() =>
-                    changeQuantity("bevande", 1)
-                  }
-                >
-                  +
-                </button>
-
-              </div>
+              <input
+                className="quantityInput"
+                type="number"
+                min="0"
+                step="1"
+                inputMode="numeric"
+                value={kitBevande}
+                onChange={handleBevandeChange}
+                onFocus={(e) => e.target.select()}
+                placeholder="0"
+              />
 
               <div className="kitSubtotal">
 
@@ -390,7 +415,8 @@ export default function ImportPage() {
                 <strong>
                   $
                   {formatMoney(
-                    kitBevande * PREZZO_KIT
+                    Number(kitBevande || 0) *
+                      PREZZO_KIT
                   )}
                 </strong>
 
@@ -399,6 +425,8 @@ export default function ImportPage() {
             </div>
 
           </div>
+
+          {/* RIEPILOGO */}
 
           <div className="importSummary">
 
@@ -410,12 +438,16 @@ export default function ImportPage() {
 
               <div className="importSummaryRow">
                 <span>Kit Cibo</span>
-                <strong>{kitCibo}</strong>
+                <strong>
+                  {Number(kitCibo || 0)}
+                </strong>
               </div>
 
               <div className="importSummaryRow">
                 <span>Kit Bevande</span>
-                <strong>{kitBevande}</strong>
+                <strong>
+                  {Number(kitBevande || 0)}
+                </strong>
               </div>
 
               <div className="importTotal">
@@ -433,8 +465,8 @@ export default function ImportPage() {
                 onClick={confirmImport}
                 disabled={
                   saving ||
-                  (kitCibo === 0 &&
-                    kitBevande === 0)
+                  (Number(kitCibo || 0) === 0 &&
+                    Number(kitBevande || 0) === 0)
                 }
               >
                 {saving
