@@ -13,6 +13,8 @@ export default function FatturePage() {
 
   const [selectedProduct, setSelectedProduct] = useState("");
   const [quantity, setQuantity] = useState(1);
+
+  // Ogni elemento del carrello rappresenta una fattura separata
   const [cart, setCart] = useState([]);
 
   const [cartOpen, setCartOpen] = useState(true);
@@ -29,35 +31,38 @@ export default function FatturePage() {
 
     const {
       data: { user: currentUser },
+      error: userError,
     } = await supabase.auth.getUser();
 
-    if (!currentUser) {
+    if (userError || !currentUser) {
       router.replace("/login");
       return;
     }
 
     setUser(currentUser);
 
-    const { data: profileData, error: profileError } = await supabase
-      .from("profiles")
-      .select("nome, ruolo")
-      .eq("id", currentUser.id)
-      .single();
+    const { data: profileData, error: profileError } =
+      await supabase
+        .from("profiles")
+        .select("nome, ruolo")
+        .eq("id", currentUser.id)
+        .single();
 
     if (profileError) {
-      console.error(profileError);
+      console.error("Errore profilo:", profileError);
     } else {
       setProfile(profileData);
     }
 
-    const { data: productData, error: productError } = await supabase
-      .from("products")
-      .select("id, nome, prezzo")
-      .eq("attivo", true)
-      .order("id");
+    const { data: productData, error: productError } =
+      await supabase
+        .from("products")
+        .select("id, nome, prezzo")
+        .eq("attivo", true)
+        .order("id");
 
     if (productError) {
-      console.error(productError);
+      console.error("Errore prodotti:", productError);
       setMessage("Errore durante il caricamento dei prodotti.");
     } else {
       setProducts(productData || []);
@@ -81,7 +86,8 @@ export default function FatturePage() {
     setMessage("");
 
     const product = products.find(
-      (item) => String(item.id) === String(selectedProduct)
+      (item) =>
+        String(item.id) === String(selectedProduct)
     );
 
     if (!product) {
@@ -96,108 +102,124 @@ export default function FatturePage() {
       return;
     }
 
-    if (product.prezzo === null || product.prezzo === undefined) {
+    if (
+      product.prezzo === null ||
+      product.prezzo === undefined
+    ) {
       setMessage(
         `Il prezzo di "${product.nome}" non è ancora stato impostato.`
       );
       return;
     }
 
-    const existing = cart.find(
-      (item) => item.product_id === product.id
-    );
+    const prezzo = Number(product.prezzo);
 
-    if (existing) {
-      setCart(
-        cart.map((item) =>
-          item.product_id === product.id
-            ? {
-                ...item,
-                quantita: item.quantita + qty,
-                subtotale:
-                  (item.quantita + qty) *
-                  Number(item.prezzo_unitario),
-              }
-            : item
-        )
-      );
-    } else {
-      setCart([
-        ...cart,
-        {
-          product_id: product.id,
-          nome: product.nome,
-          quantita: qty,
-          prezzo_unitario: Number(product.prezzo),
-          subtotale: qty * Number(product.prezzo),
-        },
-      ]);
-    }
+    // ID locale unico per distinguere anche due fatture identiche
+    const localId =
+      Date.now().toString() +
+      Math.random().toString(36).slice(2);
+
+    const nuovaFattura = {
+      localId,
+      product_id: product.id,
+      nome: product.nome,
+      quantita: qty,
+      prezzo_unitario: prezzo,
+      totale: qty * prezzo,
+    };
+
+    // IMPORTANTE:
+    // aggiungiamo sempre una nuova fattura.
+    // Non sommiamo mai con quelle già presenti.
+    setCart((current) => [
+      ...current,
+      nuovaFattura,
+    ]);
 
     setQuantity(1);
     setCartOpen(true);
   }
 
-  function removeFromCart(productId) {
-    setCart(
-      cart.filter((item) => item.product_id !== productId)
+  function removeFromCart(localId) {
+    setCart((current) =>
+      current.filter(
+        (invoice) => invoice.localId !== localId
+      )
     );
   }
 
-  const total = useMemo(() => {
+  const grandTotal = useMemo(() => {
     return cart.reduce(
-      (sum, item) => sum + Number(item.subtotale),
+      (sum, invoice) =>
+        sum + Number(invoice.totale || 0),
       0
     );
   }, [cart]);
 
-  async function confirmInvoice() {
-    if (!user || cart.length === 0 || saving) return;
+  async function confirmInvoices() {
+    if (!user || cart.length === 0 || saving) {
+      return;
+    }
 
     setSaving(true);
     setMessage("");
 
-    const { data: invoice, error: invoiceError } = await supabase
-      .from("invoices")
-      .insert({
-        employee_id: user.id,
-        totale: total,
-      })
-      .select("id")
-      .single();
+    try {
+      // Ogni anteprima del carrello diventa
+      // una fattura SEPARATA nel database.
+      for (const invoice of cart) {
+        const {
+          data: createdInvoice,
+          error: invoiceError,
+        } = await supabase
+          .from("invoices")
+          .insert({
+            employee_id: user.id,
+            totale: invoice.totale,
+          })
+          .select("id")
+          .single();
 
-    if (invoiceError) {
-      console.error(invoiceError);
-      setMessage("Errore durante la creazione della fattura.");
-      setSaving(false);
-      return;
-    }
+        if (invoiceError) {
+          throw invoiceError;
+        }
 
-    const items = cart.map((item) => ({
-      invoice_id: invoice.id,
-      product_id: item.product_id,
-      quantita: item.quantita,
-      prezzo_unitario: item.prezzo_unitario,
-      subtotale: item.subtotale,
-    }));
+        const { error: itemError } = await supabase
+          .from("invoice_items")
+          .insert({
+            invoice_id: createdInvoice.id,
+            product_id: invoice.product_id,
+            quantita: invoice.quantita,
+            prezzo_unitario:
+              invoice.prezzo_unitario,
+            subtotale: invoice.totale,
+          });
 
-    const { error: itemsError } = await supabase
-      .from("invoice_items")
-      .insert(items);
+        if (itemError) {
+          throw itemError;
+        }
+      }
 
-    if (itemsError) {
-      console.error(itemsError);
+      const numeroFatture = cart.length;
+
+      setCart([]);
 
       setMessage(
-        "La fattura è stata creata, ma si è verificato un errore con i prodotti."
+        numeroFatture === 1
+          ? "Fattura registrata con successo!"
+          : `${numeroFatture} fatture registrate con successo!`
+      );
+    } catch (error) {
+      console.error(
+        "Errore registrazione fatture:",
+        error
       );
 
-      setSaving(false);
-      return;
+      setMessage(
+        "Si è verificato un errore durante la registrazione delle fatture."
+      );
     }
 
-    setCart([]);
-    setMessage("Fattura registrata con successo!");
     setSaving(false);
   }
 
@@ -209,7 +231,9 @@ export default function FatturePage() {
   if (loading) {
     return (
       <main className="loadingPage">
-        <div className="loadingText">AQUA BAR</div>
+        <div className="loadingText">
+          AQUA BAR
+        </div>
       </main>
     );
   }
@@ -227,7 +251,9 @@ export default function FatturePage() {
 
           <nav>
 
-            <button onClick={() => router.push("/")}>
+            <button
+              onClick={() => router.push("/")}
+            >
               <span className="navIcon">⌂</span>
               Dashboard
             </button>
@@ -237,7 +263,11 @@ export default function FatturePage() {
               Fatture
             </button>
 
-            <button onClick={() => router.push("/import")}>
+            <button
+              onClick={() =>
+                router.push("/import")
+              }
+            >
               <span className="navIcon">◇</span>
               Import
             </button>
@@ -256,7 +286,10 @@ export default function FatturePage() {
           <header>
 
             <div>
-              <p className="eyebrow">AQUA BAR</p>
+              <p className="eyebrow">
+                AQUA BAR
+              </p>
+
               <h2>Fatture</h2>
 
               <p className="subtitle">
@@ -267,7 +300,9 @@ export default function FatturePage() {
             <div className="user">
 
               <div className="avatar">
-                {profile?.nome?.charAt(0).toUpperCase() || "A"}
+                {profile?.nome
+                  ?.charAt(0)
+                  .toUpperCase() || "A"}
               </div>
 
               <div className="userInfo">
@@ -299,13 +334,15 @@ export default function FatturePage() {
 
           <div className="invoiceLayout">
 
+            {/* NUOVA FATTURA */}
+
             <div className="invoicePanel">
 
               <p className="welcomeLabel">
                 NUOVA FATTURA
               </p>
 
-              <h2>Aggiungi prodotto</h2>
+              <h2>Aggiungi fattura</h2>
 
               <div className="invoiceForm">
 
@@ -314,7 +351,9 @@ export default function FatturePage() {
                 <select
                   value={selectedProduct}
                   onChange={(e) =>
-                    setSelectedProduct(e.target.value)
+                    setSelectedProduct(
+                      e.target.value
+                    )
                   }
                 >
                   {products.map((product) => (
@@ -324,7 +363,9 @@ export default function FatturePage() {
                     >
                       {product.nome}
                       {product.prezzo !== null
-                        ? ` — $${formatMoney(product.prezzo)}`
+                        ? ` — $${formatMoney(
+                            product.prezzo
+                          )}`
                         : " — prezzo da impostare"}
                     </option>
                   ))}
@@ -340,27 +381,37 @@ export default function FatturePage() {
                   onChange={(e) =>
                     setQuantity(e.target.value)
                   }
+                  onFocus={(e) =>
+                    e.target.select()
+                  }
                 />
 
                 <button
                   className="invoicePrimaryButton"
                   onClick={addToCart}
                 >
-                  + Aggiungi al carrello
+                  + AGGIUNGI AL CARRELLO
                 </button>
 
               </div>
 
             </div>
 
+            {/* CARRELLO */}
+
             <div className="cartPanel">
 
               <button
                 className="cartHeader"
-                onClick={() => setCartOpen(!cartOpen)}
+                onClick={() =>
+                  setCartOpen(!cartOpen)
+                }
               >
                 <span>
-                  CARRELLO ({cart.length})
+                  CARRELLO — {cart.length}{" "}
+                  {cart.length === 1
+                    ? "FATTURA"
+                    : "FATTURE"}
                 </span>
 
                 <strong>
@@ -372,74 +423,125 @@ export default function FatturePage() {
                 <div className="cartContent">
 
                   {cart.length === 0 ? (
+
                     <p className="emptyCart">
-                      Il carrello è vuoto.
+                      Nessuna fattura nel carrello.
                     </p>
+
                   ) : (
+
                     <>
-                      {cart.map((item) => (
-                        <div
-                          className="cartItem"
-                          key={item.product_id}
-                        >
+                      {cart.map(
+                        (invoice, index) => (
 
-                          <div>
-                            <strong>
-                              {item.nome}
-                            </strong>
+                          <div
+                            className="cartItem"
+                            key={
+                              invoice.localId
+                            }
+                          >
 
-                            <span>
-                              {item.quantita} × $
-                              {formatMoney(
-                                item.prezzo_unitario
-                              )}
-                            </span>
+                            <div>
+
+                              <span>
+                                FATTURA #
+                                {index + 1}
+                              </span>
+
+                              <strong>
+                                {invoice.nome}
+                              </strong>
+
+                              <span>
+                                Quantità:{" "}
+                                {invoice.quantita}
+                              </span>
+
+                              <span>
+                                $
+                                {formatMoney(
+                                  invoice.prezzo_unitario
+                                )}{" "}
+                                ×{" "}
+                                {invoice.quantita}
+                              </span>
+
+                            </div>
+
+                            <div className="cartItemRight">
+
+                              <strong>
+                                $
+                                {formatMoney(
+                                  invoice.totale
+                                )}
+                              </strong>
+
+                              <button
+                                onClick={() =>
+                                  removeFromCart(
+                                    invoice.localId
+                                  )
+                                }
+                                title="Rimuovi fattura"
+                              >
+                                ×
+                              </button>
+
+                            </div>
+
                           </div>
 
-                          <div className="cartItemRight">
-
-                            <strong>
-                              $
-                              {formatMoney(
-                                item.subtotale
-                              )}
-                            </strong>
-
-                            <button
-                              onClick={() =>
-                                removeFromCart(
-                                  item.product_id
-                                )
-                              }
-                            >
-                              ×
-                            </button>
-
-                          </div>
-
-                        </div>
-                      ))}
+                        )
+                      )}
 
                       <div className="cartTotal">
 
-                        <span>TOTALE</span>
+                        <div>
+                          <span>
+                            TOTALE CARRELLO
+                          </span>
+
+                          <small
+                            style={{
+                              display: "block",
+                              marginTop: "5px",
+                              color:
+                                "rgba(255,255,255,.45)",
+                            }}
+                          >
+                            {cart.length}{" "}
+                            {cart.length === 1
+                              ? "fattura"
+                              : "fatture"}
+                          </small>
+                        </div>
 
                         <strong>
-                          ${formatMoney(total)}
+                          $
+                          {formatMoney(
+                            grandTotal
+                          )}
                         </strong>
 
                       </div>
 
                       <button
                         className="invoiceConfirmButton"
-                        onClick={confirmInvoice}
+                        onClick={
+                          confirmInvoices
+                        }
                         disabled={saving}
                       >
                         {saving
                           ? "REGISTRAZIONE..."
-                          : "CONFERMA FATTURA"}
+                          : cart.length === 1
+                          ? "CONFERMA FATTURA"
+                          : `CONFERMA ${cart.length} FATTURE`}
                       </button>
+
                     </>
+
                   )}
 
                 </div>
@@ -452,7 +554,9 @@ export default function FatturePage() {
           {message && (
             <div
               className={
-                message.includes("successo")
+                message.includes(
+                  "successo"
+                )
                   ? "invoiceMessage success"
                   : "invoiceMessage"
               }
