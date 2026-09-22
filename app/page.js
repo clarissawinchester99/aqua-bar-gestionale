@@ -39,10 +39,7 @@ export default function Home() {
         .single();
 
     if (profileError) {
-      console.error(
-        "Errore profilo:",
-        profileError
-      );
+      console.error("Errore profilo:", profileError);
     } else {
       setProfile(profileData);
     }
@@ -56,14 +53,9 @@ export default function Home() {
         .single();
 
     if (accountError) {
-      console.error(
-        "Errore fondo cassa:",
-        accountError
-      );
+      console.error("Errore fondo cassa:", accountError);
     } else {
-      setSaldo(
-        Number(accountData?.saldo) || 0
-      );
+      setSaldo(Number(accountData?.saldo) || 0);
     }
 
     // FATTURATO PERSONALE
@@ -74,52 +66,34 @@ export default function Home() {
         .eq("employee_id", user.id);
 
     if (invoiceError) {
-      console.error(
-        "Errore fatturato:",
-        invoiceError
-      );
+      console.error("Errore fatturato:", invoiceError);
     } else {
-      const totaleFatturato = (
-        invoiceData || []
-      ).reduce(
+      const totaleFatturato = (invoiceData || []).reduce(
         (somma, fattura) =>
-          somma +
-          Number(fattura.totale || 0),
+          somma + Number(fattura.totale || 0),
         0
       );
 
       setFatturato(totaleFatturato);
     }
 
-    // IMPORT
-    // IMPORTANTE:
-    // vengono conteggiati SOLO gli ordini
-    // che NON sono stati annullati.
-    const { data: importData, error: importError } =
-      await supabase
-        .from("imports")
-        .select("totale")
-        .eq("employee_id", user.id)
-        .eq("annullato", false);
+    // TOTALE IMPORT
+    // Viene calcolato direttamente da Supabase.
+    // Gli ordini annullati NON vengono conteggiati.
+    const {
+      data: importTotal,
+      error: importTotalError,
+    } = await supabase.rpc("totale_import_attivi");
 
-    if (importError) {
+    if (importTotalError) {
       console.error(
-        "Errore import:",
-        importError
-      );
-    } else {
-      const totaleImportAttivi = (
-        importData || []
-      ).reduce(
-        (somma, ordine) =>
-          somma +
-          Number(ordine.totale || 0),
-        0
+        "Errore totale import:",
+        importTotalError
       );
 
-      setTotaleImport(
-        totaleImportAttivi
-      );
+      setTotaleImport(0);
+    } else {
+      setTotaleImport(Number(importTotal) || 0);
     }
 
     setLoading(false);
@@ -131,13 +105,10 @@ export default function Home() {
   }
 
   function formatMoney(value) {
-    return Number(value || 0).toLocaleString(
-      "it-IT",
-      {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2,
-      }
-    );
+    return Number(value || 0).toLocaleString("it-IT", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    });
   }
 
   if (loading) {
@@ -164,44 +135,29 @@ export default function Home() {
           <nav>
 
             <button className="active">
-              <span className="navIcon">
-                ⌂
-              </span>
+              <span className="navIcon">⌂</span>
               Dashboard
             </button>
 
             <button
-              onClick={() =>
-                router.push("/fatture")
-              }
+              onClick={() => router.push("/fatture")}
             >
-              <span className="navIcon">
-                ▤
-              </span>
+              <span className="navIcon">▤</span>
               Fatture
             </button>
 
             <button
-              onClick={() =>
-                router.push("/import")
-              }
+              onClick={() => router.push("/import")}
             >
-              <span className="navIcon">
-                ◇
-              </span>
+              <span className="navIcon">◇</span>
               Import
             </button>
 
           </nav>
 
           <div className="sidebarBottom">
-            <p>
-              Gestionale AQUA BAR
-            </p>
-
-            <small>
-              FiveM Management
-            </small>
+            <p>Gestionale AQUA BAR</p>
+            <small>FiveM Management</small>
           </div>
 
         </aside>
@@ -211,20 +167,15 @@ export default function Home() {
           <header>
 
             <div>
-
               <p className="eyebrow">
                 AQUA BAR
               </p>
 
-              <h2>
-                Dashboard
-              </h2>
+              <h2>Dashboard</h2>
 
               <p className="subtitle">
-                Benvenuto nel gestionale
-                del locale
+                Benvenuto nel gestionale del locale
               </p>
-
             </div>
 
             <div className="user">
@@ -238,15 +189,13 @@ export default function Home() {
               <div className="userInfo">
 
                 <strong>
-                  {profile?.nome ||
-                    "Utente"}
+                  {profile?.nome || "Utente"}
                 </strong>
 
                 <span>
                   <i className="onlineDot"></i>
 
-                  {profile?.ruolo ===
-                  "admin"
+                  {profile?.ruolo === "admin"
                     ? "Amministratore"
                     : "Dipendente"}
                 </span>
@@ -266,8 +215,6 @@ export default function Home() {
 
           <div className="cards">
 
-            {/* FONDO CASSA */}
-
             <div className="card">
 
               <div className="cardIcon">
@@ -275,28 +222,20 @@ export default function Home() {
               </div>
 
               <div>
-
                 <span>
                   FONDO CASSA
                 </span>
 
                 <h3>
-                  $
-                  {formatMoney(
-                    saldo
-                  )}
+                  ${formatMoney(saldo)}
                 </h3>
 
                 <p>
-                  Conto aziendale
-                  AQUA BAR
+                  Conto aziendale AQUA BAR
                 </p>
-
               </div>
 
             </div>
-
-            {/* FATTURATO */}
 
             <div className="card">
 
@@ -305,28 +244,20 @@ export default function Home() {
               </div>
 
               <div>
-
                 <span>
                   FATTURATO PERSONALE
                 </span>
 
                 <h3>
-                  $
-                  {formatMoney(
-                    fatturato
-                  )}
+                  ${formatMoney(fatturato)}
                 </h3>
 
                 <p>
-                  Il tuo fatturato
-                  totale
+                  Il tuo fatturato totale
                 </p>
-
               </div>
 
             </div>
-
-            {/* IMPORT */}
 
             <div className="card">
 
@@ -335,23 +266,17 @@ export default function Home() {
               </div>
 
               <div>
-
                 <span>
                   TOTALE IMPORT
                 </span>
 
                 <h3>
-                  $
-                  {formatMoney(
-                    totaleImport
-                  )}
+                  ${formatMoney(totaleImport)}
                 </h3>
 
                 <p>
-                  Import attivi
-                  non annullati
+                  Import attivi non annullati
                 </p>
-
               </div>
 
             </div>
@@ -360,8 +285,7 @@ export default function Home() {
 
           <div className="welcome">
 
-            <span className="goldLine">
-            </span>
+            <span className="goldLine"></span>
 
             <p className="welcomeLabel">
               GESTIONALE UFFICIALE
@@ -372,9 +296,7 @@ export default function Home() {
             </h2>
 
             <p className="welcomeText">
-              Gestisci fatture,
-              vendite e forniture
-              del locale.
+              Gestisci fatture, vendite e forniture del locale.
             </p>
 
           </div>
