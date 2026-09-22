@@ -1387,3 +1387,333 @@ header h2 {
   -moz-appearance: textfield;
   appearance: textfield;
 }
+/* =========================================
+   FIX DEFINITIVO STORICO IMPORT AQUA BAR
+========================================= */
+
+.importHistory {
+  width: 100%;
+  margin-top: 30px;
+  padding: 30px;
+
+  background: rgba(5, 8, 12, 0.72);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  border-radius: 20px;
+
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+
+  box-sizing: border-box;
+}
+
+.importHistoryHeader {
+  width: 100%;
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+
+  padding-bottom: 20px;
+  margin-bottom: 5px;
+
+  border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+}
+
+.importHistoryHeader .welcomeLabel {
+  margin: 0 0 5px 0;
+  color: #d4af37;
+  font-size: 11px;
+  letter-spacing: 4px;
+}
+
+.importHistoryHeader h2 {
+  margin: 0 !important;
+  color: #ffffff;
+  font-size: 27px;
+  font-weight: 500;
+}
+
+.importHistoryHeader > span {
+  display: block;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+}
+
+/* LISTA */
+
+.importHistoryList {
+  width: 100%;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* SINGOLO ORDINE */
+
+.importHistoryItem {
+  width: 100%;
+
+  display: grid !important;
+
+  grid-template-columns:
+    minmax(220px, 1.5fr)
+    minmax(180px, 1fr)
+    minmax(120px, 0.6fr)
+    minmax(160px, 0.7fr) !important;
+
+  align-items: center !important;
+
+  column-gap: 35px !important;
+  row-gap: 15px !important;
+
+  padding: 22px 0 !important;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+
+  box-sizing: border-box;
+}
+
+.importHistoryItem:first-child {
+  border-top: none;
+}
+
+/* NUMERO + DATA */
+
+.importHistoryMain {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+
+  gap: 15px !important;
+}
+
+.importOrderNumber {
+  width: 48px !important;
+  min-width: 48px !important;
+  height: 48px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  background: rgba(212, 175, 55, 0.12);
+
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 12px;
+
+  color: #e2c66d;
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.importHistoryMain > div:last-child {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+
+.importHistoryMain strong {
+  display: block !important;
+
+  color: #ffffff;
+
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.importHistoryMain p {
+  display: block !important;
+
+  margin: 0 !important;
+
+  color: rgba(255, 255, 255, 0.48);
+
+  font-size: 12px;
+}
+
+/* QUANTITÀ */
+
+.importHistoryDetails {
+  display: flex !important;
+  flex-direction: row !important;
+
+  align-items: center !important;
+
+  gap: 35px !important;
+}
+
+.importHistoryDetails span {
+  display: flex !important;
+  flex-direction: column !important;
+
+  gap: 6px !important;
+
+  color: rgba(255, 255, 255, 0.45);
+
+  font-size: 10px;
+
+  letter-spacing: 1.5px;
+
+  text-transform: uppercase;
+}
+
+.importHistoryDetails strong {
+  display: block !important;
+
+  color: #ffffff;
+
+  font-size: 18px;
+
+  font-weight: 600;
+}
+
+/* TOTALE */
+
+.importHistoryTotal {
+  display: flex !important;
+  flex-direction: column !important;
+
+  gap: 5px !important;
+}
+
+.importHistoryTotal small {
+  display: block !important;
+
+  color: rgba(255, 255, 255, 0.45);
+
+  font-size: 10px;
+
+  letter-spacing: 1.5px;
+
+  text-transform: uppercase;
+}
+
+.importHistoryTotal strong {
+  display: block !important;
+
+  color: #e2c66d;
+
+  font-size: 20px;
+
+  font-weight: 600;
+}
+
+/* PULSANTE */
+
+.importHistoryAction {
+  display: flex !important;
+
+  justify-content: flex-end !important;
+
+  align-items: center !important;
+}
+
+.cancelImportButton {
+  min-width: 150px;
+  min-height: 44px;
+
+  padding: 0 18px;
+
+  border: 1px solid rgba(255, 90, 90, 0.5);
+
+  border-radius: 10px;
+
+  background: rgba(120, 20, 20, 0.22);
+
+  color: #ff9b9b;
+
+  font-size: 11px;
+
+  font-weight: 700;
+
+  letter-spacing: 1px;
+
+  cursor: pointer;
+}
+
+.cancelImportButton:hover:not(:disabled) {
+  background: rgba(170, 30, 30, 0.35);
+
+  border-color: rgba(255, 100, 100, 0.8);
+}
+
+/* ORDINE ANNULLATO */
+
+.importHistoryItem.cancelled {
+  opacity: 0.55;
+}
+
+.importHistoryItem.cancelled .importHistoryTotal strong {
+  text-decoration: line-through;
+}
+
+.cancelledBadge {
+  min-width: 130px;
+
+  min-height: 40px;
+
+  display: flex !important;
+
+  align-items: center !important;
+
+  justify-content: center !important;
+
+  padding: 0 15px;
+
+  border: 1px solid rgba(255, 255, 255, 0.15);
+
+  border-radius: 10px;
+
+  background: rgba(255, 255, 255, 0.04);
+
+  color: rgba(255, 255, 255, 0.55);
+
+  font-size: 10px;
+
+  font-weight: 700;
+
+  letter-spacing: 1.5px;
+}
+
+/* TABLET */
+
+@media (max-width: 1100px) {
+
+  .importHistoryItem {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .importHistoryAction {
+    justify-content: flex-start !important;
+  }
+
+}
+
+/* MOBILE */
+
+@media (max-width: 700px) {
+
+  .importHistory {
+    padding: 20px;
+  }
+
+  .importHistoryHeader {
+    align-items: flex-start !important;
+  }
+
+  .importHistoryItem {
+    grid-template-columns: 1fr !important;
+
+    gap: 18px !important;
+  }
+
+  .importHistoryDetails {
+    justify-content: flex-start !important;
+  }
+
+  .cancelImportButton,
+  .cancelledBadge {
+    width: 100%;
+  }
+
+}
