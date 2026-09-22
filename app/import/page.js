@@ -9,7 +9,6 @@ const PREZZO_KIT = 100;
 export default function ImportPage() {
   const router = useRouter();
 
-  const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [saldo, setSaldo] = useState(0);
 
@@ -19,6 +18,7 @@ export default function ImportPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [success, setSuccess] = useState(false);
 
   const totale = (kitCibo + kitBevande) * PREZZO_KIT;
 
@@ -30,22 +30,21 @@ export default function ImportPage() {
     setLoading(true);
 
     const {
-      data: { user: currentUser },
+      data: { user },
       error: userError,
     } = await supabase.auth.getUser();
 
-    if (userError || !currentUser) {
+    if (userError || !user) {
       router.replace("/login");
       return;
     }
 
-    setUser(currentUser);
-
-    const { data: profileData, error: profileError } = await supabase
-      .from("profiles")
-      .select("nome, ruolo")
-      .eq("id", currentUser.id)
-      .single();
+    const { data: profileData, error: profileError } =
+      await supabase
+        .from("profiles")
+        .select("nome, ruolo")
+        .eq("id", user.id)
+        .single();
 
     if (profileError) {
       console.error("Errore profilo:", profileError);
@@ -53,19 +52,24 @@ export default function ImportPage() {
       setProfile(profileData);
     }
 
-    const { data: accountData, error: accountError } = await supabase
+    await loadSaldo();
+
+    setLoading(false);
+  }
+
+  async function loadSaldo() {
+    const { data, error } = await supabase
       .from("company_account")
       .select("saldo")
       .eq("id", 1)
       .single();
 
-    if (accountError) {
-      console.error("Errore fondo cassa:", accountError);
-    } else {
-      setSaldo(Number(accountData?.saldo) || 0);
+    if (error) {
+      console.error("Errore fondo cassa:", error);
+      return;
     }
 
-    setLoading(false);
+    setSaldo(Number(data?.saldo) || 0);
   }
 
   function formatMoney(value) {
@@ -75,30 +79,28 @@ export default function ImportPage() {
     });
   }
 
-  function decreaseCibo() {
-    setKitCibo((value) => Math.max(0, value - 1));
+  function changeQuantity(type, amount) {
     setMessage("");
-  }
+    setSuccess(false);
 
-  function increaseCibo() {
-    setKitCibo((value) => value + 1);
-    setMessage("");
-  }
+    if (type === "cibo") {
+      setKitCibo((current) =>
+        Math.max(0, current + amount)
+      );
+    }
 
-  function decreaseBevande() {
-    setKitBevande((value) => Math.max(0, value - 1));
-    setMessage("");
-  }
-
-  function increaseBevande() {
-    setKitBevande((value) => value + 1);
-    setMessage("");
+    if (type === "bevande") {
+      setKitBevande((current) =>
+        Math.max(0, current + amount)
+      );
+    }
   }
 
   async function confirmImport() {
-    if (!user || saving) return;
+    if (saving) return;
 
     setMessage("");
+    setSuccess(false);
 
     if (kitCibo === 0 && kitBevande === 0) {
       setMessage("Seleziona almeno un kit.");
@@ -112,41 +114,53 @@ export default function ImportPage() {
 
     setSaving(true);
 
-    /*
-      Per ora NON aggiorniamo il saldo dal browser.
-
-      Nel prossimo passaggio creeremo una funzione sicura
-      direttamente in Supabase che:
-      1. controlla il saldo;
-      2. registra l'import;
-      3. scala il costo dal Fondo Cassa;
-      4. impedisce modifiche manuali dal browser.
-    */
-
-    const { error } = await supabase
-      .from("imports")
-      .insert({
-        employee_id: user.id,
-        kit_cibo: kitCibo,
-        kit_bevande: kitBevande,
-        prezzo_kit: PREZZO_KIT,
-        totale: totale,
-      });
+    const { data, error } = await supabase.rpc(
+      "registra_import",
+      {
+        p_kit_cibo: kitCibo,
+        p_kit_bevande: kitBevande,
+      }
+    );
 
     if (error) {
       console.error("Errore import:", error);
-      setMessage("Errore durante la registrazione dell'import.");
+
+      if (
+        error.message
+          ?.toLowerCase()
+          .includes("fondo cassa insufficiente")
+      ) {
+        setMessage("Fondo cassa insufficiente.");
+      } else {
+        setMessage(
+          "Si è verificato un errore durante l'import."
+        );
+      }
+
       setSaving(false);
       return;
     }
+
+    const nuovoSaldo = Number(data?.nuovo_saldo);
+
+    if (!Number.isNaN(nuovoSaldo)) {
+      setSaldo(nuovoSaldo);
+    } else {
+      await loadSaldo();
+    }
+
+    const totalePagato = Number(data?.totale || totale);
 
     setKitCibo(0);
     setKitBevande(0);
 
     setMessage(
-      "Import registrato. Nel prossimo passaggio collegheremo la scalata automatica dal Fondo Cassa."
+      `Import registrato con successo. $${formatMoney(
+        totalePagato
+      )} scalati dal Fondo Cassa.`
     );
 
+    setSuccess(true);
     setSaving(false);
   }
 
@@ -158,7 +172,9 @@ export default function ImportPage() {
   if (loading) {
     return (
       <main className="loadingPage">
-        <div className="loadingText">AQUA BAR</div>
+        <div className="loadingText">
+          AQUA BAR
+        </div>
       </main>
     );
   }
@@ -175,12 +191,15 @@ export default function ImportPage() {
           </div>
 
           <nav>
+
             <button onClick={() => router.push("/")}>
               <span className="navIcon">⌂</span>
               Dashboard
             </button>
 
-            <button onClick={() => router.push("/fatture")}>
+            <button
+              onClick={() => router.push("/fatture")}
+            >
               <span className="navIcon">▤</span>
               Fatture
             </button>
@@ -189,6 +208,7 @@ export default function ImportPage() {
               <span className="navIcon">◇</span>
               Import
             </button>
+
           </nav>
 
           <div className="sidebarBottom">
@@ -204,6 +224,7 @@ export default function ImportPage() {
 
             <div>
               <p className="eyebrow">AQUA BAR</p>
+
               <h2>Import</h2>
 
               <p className="subtitle">
@@ -214,11 +235,16 @@ export default function ImportPage() {
             <div className="user">
 
               <div className="avatar">
-                {profile?.nome?.charAt(0).toUpperCase() || "A"}
+                {profile?.nome
+                  ?.charAt(0)
+                  .toUpperCase() || "A"}
               </div>
 
               <div className="userInfo">
-                <strong>{profile?.nome || "Utente"}</strong>
+
+                <strong>
+                  {profile?.nome || "Utente"}
+                </strong>
 
                 <span>
                   <i className="onlineDot"></i>
@@ -227,6 +253,7 @@ export default function ImportPage() {
                     ? "Amministratore"
                     : "Dipendente"}
                 </span>
+
               </div>
 
               <button
@@ -244,12 +271,15 @@ export default function ImportPage() {
 
             <div>
               <span>FONDO CASSA DISPONIBILE</span>
-              <h3>${formatMoney(saldo)}</h3>
+
+              <h3>
+                ${formatMoney(saldo)}
+              </h3>
             </div>
 
             <p>
-              Gli import vengono pagati utilizzando il conto
-              aziendale AQUA BAR.
+              Gli import vengono pagati utilizzando
+              il conto aziendale AQUA BAR.
             </p>
 
           </div>
@@ -258,7 +288,9 @@ export default function ImportPage() {
 
             <div className="importKitCard">
 
-              <div className="importKitIcon">🍽</div>
+              <div className="importKitIcon">
+                🍽
+              </div>
 
               <p className="welcomeLabel">
                 FORNITURE
@@ -273,31 +305,48 @@ export default function ImportPage() {
 
               <div className="quantityControl">
 
-                <button onClick={decreaseCibo}>
+                <button
+                  onClick={() =>
+                    changeQuantity("cibo", -1)
+                  }
+                >
                   −
                 </button>
 
-                <strong>{kitCibo}</strong>
+                <strong>
+                  {kitCibo}
+                </strong>
 
-                <button onClick={increaseCibo}>
+                <button
+                  onClick={() =>
+                    changeQuantity("cibo", 1)
+                  }
+                >
                   +
                 </button>
 
               </div>
 
               <div className="kitSubtotal">
+
                 <span>Subtotale</span>
 
                 <strong>
-                  ${formatMoney(kitCibo * PREZZO_KIT)}
+                  $
+                  {formatMoney(
+                    kitCibo * PREZZO_KIT
+                  )}
                 </strong>
+
               </div>
 
             </div>
 
             <div className="importKitCard">
 
-              <div className="importKitIcon">🍸</div>
+              <div className="importKitIcon">
+                🍸
+              </div>
 
               <p className="welcomeLabel">
                 FORNITURE
@@ -312,24 +361,39 @@ export default function ImportPage() {
 
               <div className="quantityControl">
 
-                <button onClick={decreaseBevande}>
+                <button
+                  onClick={() =>
+                    changeQuantity("bevande", -1)
+                  }
+                >
                   −
                 </button>
 
-                <strong>{kitBevande}</strong>
+                <strong>
+                  {kitBevande}
+                </strong>
 
-                <button onClick={increaseBevande}>
+                <button
+                  onClick={() =>
+                    changeQuantity("bevande", 1)
+                  }
+                >
                   +
                 </button>
 
               </div>
 
               <div className="kitSubtotal">
+
                 <span>Subtotale</span>
 
                 <strong>
-                  ${formatMoney(kitBevande * PREZZO_KIT)}
+                  $
+                  {formatMoney(
+                    kitBevande * PREZZO_KIT
+                  )}
                 </strong>
+
               </div>
 
             </div>
@@ -339,6 +403,7 @@ export default function ImportPage() {
           <div className="importSummary">
 
             <div>
+
               <p className="welcomeLabel">
                 RIEPILOGO IMPORT
               </p>
@@ -354,11 +419,13 @@ export default function ImportPage() {
               </div>
 
               <div className="importTotal">
+
                 <span>TOTALE</span>
 
                 <strong>
                   ${formatMoney(totale)}
                 </strong>
+
               </div>
 
               <button
@@ -366,7 +433,8 @@ export default function ImportPage() {
                 onClick={confirmImport}
                 disabled={
                   saving ||
-                  (kitCibo === 0 && kitBevande === 0)
+                  (kitCibo === 0 &&
+                    kitBevande === 0)
                 }
               >
                 {saving
@@ -379,7 +447,13 @@ export default function ImportPage() {
           </div>
 
           {message && (
-            <div className="invoiceMessage">
+            <div
+              className={
+                success
+                  ? "invoiceMessage success"
+                  : "invoiceMessage"
+              }
+            >
               {message}
             </div>
           )}
