@@ -899,3 +899,435 @@ header h2 {
     padding-right: 18px;
   }
 }
+/* ========================================
+   AQUA BAR - PAGINA IMPORT
+======================================== */
+
+.importTopCard {
+  width: 100%;
+  margin-top: 30px;
+  padding: 24px 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+
+  background: rgba(5, 8, 12, 0.58);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 18px;
+
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.3);
+}
+
+.importTopCard > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.importTopCard span {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+.importTopCard h3 {
+  margin: 0;
+  color: #e2c66d;
+  font-size: 32px;
+  font-weight: 500;
+}
+
+.importTopCard p {
+  max-width: 450px;
+  margin: 0;
+
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+
+/* ========================================
+   CARTE KIT
+======================================== */
+
+.importGrid {
+  width: 100%;
+
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.importKitCard {
+  position: relative;
+
+  padding: 28px;
+
+  background: rgba(5, 8, 12, 0.58);
+
+  border: 1px solid rgba(212, 175, 55, 0.35);
+
+  border-radius: 20px;
+
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.3);
+
+  overflow: hidden;
+}
+
+.importKitCard::before {
+  content: "";
+
+  position: absolute;
+
+  top: 0;
+  left: 30px;
+
+  width: 55px;
+  height: 2px;
+
+  background: #d4af37;
+
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.6);
+}
+
+.importKitIcon {
+  width: 50px;
+  height: 50px;
+
+  margin-bottom: 18px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 14px;
+
+  background: rgba(212, 175, 55, 0.1);
+
+  border: 1px solid rgba(212, 175, 55, 0.3);
+
+  font-size: 24px;
+}
+
+.importKitCard .welcomeLabel {
+  margin: 0 0 6px;
+
+  color: #d4af37;
+
+  font-size: 11px;
+
+  letter-spacing: 4px;
+
+  font-weight: 700;
+}
+
+.importKitCard h2 {
+  margin: 0;
+
+  color: white;
+
+  font-size: 27px;
+
+  font-weight: 500;
+}
+
+.importPrice {
+  margin: 8px 0 25px;
+
+  color: #e2c66d;
+
+  font-size: 22px;
+
+  font-weight: 600;
+}
+
+.importPrice span {
+  color: rgba(255, 255, 255, 0.45);
+
+  font-size: 13px;
+
+  font-weight: 400;
+}
+
+
+/* ========================================
+   PULSANTI QUANTITÀ
+======================================== */
+
+.quantityControl {
+  width: 100%;
+
+  min-height: 60px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  padding: 7px;
+
+  background: rgba(0, 0, 0, 0.38);
+
+  border: 1px solid rgba(212, 175, 55, 0.25);
+
+  border-radius: 14px;
+}
+
+.quantityControl button {
+  width: 46px;
+  height: 46px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border-radius: 10px;
+
+  border: 1px solid rgba(212, 175, 55, 0.35);
+
+  background: rgba(212, 175, 55, 0.1);
+
+  color: #e2c66d;
+
+  font-size: 25px;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+}
+
+.quantityControl button:hover {
+  background: rgba(212, 175, 55, 0.22);
+
+  transform: translateY(-1px);
+}
+
+.quantityControl strong {
+  color: white;
+
+  font-size: 25px;
+
+  font-weight: 500;
+}
+
+
+/* ========================================
+   SUBTOTALE
+======================================== */
+
+.kitSubtotal {
+  margin-top: 20px;
+
+  padding-top: 18px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.kitSubtotal span {
+  color: rgba(255, 255, 255, 0.5);
+
+  font-size: 12px;
+
+  letter-spacing: 1px;
+
+  text-transform: uppercase;
+}
+
+.kitSubtotal strong {
+  color: #e2c66d;
+
+  font-size: 19px;
+}
+
+
+/* ========================================
+   RIEPILOGO IMPORT
+======================================== */
+
+.importSummary {
+  width: 100%;
+
+  margin-top: 24px;
+
+  display: flex;
+
+  justify-content: flex-end;
+}
+
+.importSummary > div {
+  width: 100%;
+
+  padding: 28px;
+
+  background: rgba(5, 8, 12, 0.62);
+
+  border: 1px solid rgba(212, 175, 55, 0.35);
+
+  border-radius: 20px;
+
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.3);
+}
+
+.importSummary .welcomeLabel {
+  margin-bottom: 20px;
+
+  color: #d4af37;
+
+  font-size: 11px;
+
+  letter-spacing: 4px;
+
+  font-weight: 700;
+}
+
+.importSummaryRow {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  padding: 11px 0;
+
+  color: rgba(255, 255, 255, 0.65);
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.importSummaryRow strong {
+  color: white;
+}
+
+.importTotal {
+  margin-top: 12px;
+
+  padding: 20px 0;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  border-top: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.importTotal span {
+  color: rgba(255, 255, 255, 0.65);
+
+  font-size: 12px;
+
+  letter-spacing: 2px;
+
+  font-weight: 700;
+}
+
+.importTotal strong {
+  color: #e2c66d;
+
+  font-size: 30px;
+
+  font-weight: 500;
+}
+
+
+/* ========================================
+   CONFERMA IMPORT
+======================================== */
+
+.importConfirmButton {
+  width: 100%;
+
+  min-height: 54px;
+
+  margin-top: 5px;
+
+  border-radius: 12px;
+
+  border: 1px solid rgba(212, 175, 55, 0.8);
+
+  background: linear-gradient(
+    135deg,
+    rgba(226, 198, 109, 0.98),
+    rgba(174, 136, 32, 0.98)
+  );
+
+  color: #111;
+
+  font-size: 13px;
+
+  font-weight: 800;
+
+  letter-spacing: 1.5px;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+}
+
+.importConfirmButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+
+  filter: brightness(1.08);
+
+  box-shadow: 0 10px 30px rgba(212, 175, 55, 0.18);
+}
+
+.importConfirmButton:disabled {
+  opacity: 0.35;
+
+  cursor: not-allowed;
+}
+
+
+/* ========================================
+   RESPONSIVE
+======================================== */
+
+@media (max-width: 950px) {
+  .importGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .importTopCard {
+    flex-direction: column;
+
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 650px) {
+  .importTopCard,
+  .importKitCard,
+  .importSummary > div {
+    padding: 20px;
+  }
+
+  .importTopCard h3 {
+    font-size: 27px;
+  }
+}
