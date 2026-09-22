@@ -8,41 +8,102 @@ export default function Home() {
   const router = useRouter();
 
   const [profile, setProfile] = useState(null);
+  const [saldo, setSaldo] = useState(0);
+  const [fatturato, setFatturato] = useState(0);
+  const [totaleImport, setTotaleImport] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadUser();
+    loadDashboard();
   }, []);
 
-  async function loadUser() {
+  async function loadDashboard() {
+    setLoading(true);
+
+    // Controlla chi è collegato
     const {
       data: { user },
+      error: userError,
     } = await supabase.auth.getUser();
 
-    if (!user) {
+    if (userError || !user) {
       router.replace("/login");
       return;
     }
 
-    const { data, error } = await supabase
+    // Legge nome e ruolo
+    const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select("nome, ruolo")
       .eq("id", user.id)
       .single();
 
-    if (error || !data) {
-      console.error("Errore profilo:", error);
-      setLoading(false);
-      return;
+    if (profileError) {
+      console.error("Errore profilo:", profileError);
+    } else {
+      setProfile(profileData);
     }
 
-    setProfile(data);
+    // Legge il fondo cassa aziendale
+    const { data: accountData, error: accountError } = await supabase
+      .from("company_account")
+      .select("saldo")
+      .eq("id", 1)
+      .single();
+
+    if (accountError) {
+      console.error("Errore fondo cassa:", accountError);
+    } else {
+      setSaldo(Number(accountData?.saldo) || 0);
+    }
+
+    // Legge tutte le fatture dell'utente collegato
+    const { data: invoiceData, error: invoiceError } = await supabase
+      .from("invoices")
+      .select("totale")
+      .eq("employee_id", user.id);
+
+    if (invoiceError) {
+      console.error("Errore fatturato:", invoiceError);
+    } else {
+      const totaleFatturato = (invoiceData || []).reduce(
+        (somma, fattura) => somma + Number(fattura.totale || 0),
+        0
+      );
+
+      setFatturato(totaleFatturato);
+    }
+
+    // Legge gli import effettuati dall'utente
+    const { data: importData, error: importError } = await supabase
+      .from("imports")
+      .select("totale")
+      .eq("employee_id", user.id);
+
+    if (importError) {
+      console.error("Errore import:", importError);
+    } else {
+      const totaleSpesoImport = (importData || []).reduce(
+        (somma, ordine) => somma + Number(ordine.totale || 0),
+        0
+      );
+
+      setTotaleImport(totaleSpesoImport);
+    }
+
     setLoading(false);
   }
 
   async function logout() {
     await supabase.auth.signOut();
     router.replace("/login");
+  }
+
+  function formatMoney(value) {
+    return Number(value || 0).toLocaleString("it-IT", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    });
   }
 
   if (loading) {
@@ -58,12 +119,14 @@ export default function Home() {
       <div className="overlay">
 
         <aside className="sidebar">
+
           <div className="brand">
             <h1>AQUA</h1>
             <span>BAR</span>
           </div>
 
           <nav>
+
             <button className="active">
               <span className="navIcon">⌂</span>
               Dashboard
@@ -78,102 +141,156 @@ export default function Home() {
               <span className="navIcon">◇</span>
               Import
             </button>
+
           </nav>
 
           <div className="sidebarBottom">
             <p>Gestionale AQUA BAR</p>
             <small>FiveM Management</small>
           </div>
+
         </aside>
 
         <section className="content">
 
           <header>
+
             <div>
-              <p className="eyebrow">AQUA BAR</p>
+              <p className="eyebrow">
+                AQUA BAR
+              </p>
+
               <h2>Dashboard</h2>
+
               <p className="subtitle">
                 Benvenuto nel gestionale del locale
               </p>
             </div>
 
             <div className="user">
+
               <div className="avatar">
                 {profile?.nome?.charAt(0).toUpperCase() || "A"}
               </div>
 
               <div className="userInfo">
+
                 <strong>
                   {profile?.nome || "Utente"}
                 </strong>
 
                 <span>
                   <i className="onlineDot"></i>
+
                   {profile?.ruolo === "admin"
                     ? "Amministratore"
                     : "Dipendente"}
                 </span>
+
               </div>
 
               <button
                 className="logoutButton"
                 onClick={logout}
-                title="Esci"
+                title="Esci dal gestionale"
               >
                 Esci
               </button>
+
             </div>
+
           </header>
 
           <div className="cards">
 
             <div className="card">
-              <div className="cardIcon">◎</div>
+
+              <div className="cardIcon">
+                ◎
+              </div>
 
               <div>
-                <span>FONDO CASSA</span>
-                <h3>$0</h3>
-                <p>Conto aziendale AQUA BAR</p>
+                <span>
+                  FONDO CASSA
+                </span>
+
+                <h3>
+                  ${formatMoney(saldo)}
+                </h3>
+
+                <p>
+                  Conto aziendale AQUA BAR
+                </p>
               </div>
+
             </div>
 
             <div className="card">
-              <div className="cardIcon">♙</div>
+
+              <div className="cardIcon">
+                ♙
+              </div>
 
               <div>
-                <span>FATTURATO PERSONALE</span>
-                <h3>$0</h3>
-                <p>Il tuo fatturato totale</p>
+                <span>
+                  FATTURATO PERSONALE
+                </span>
+
+                <h3>
+                  ${formatMoney(fatturato)}
+                </h3>
+
+                <p>
+                  Il tuo fatturato totale
+                </p>
               </div>
+
             </div>
 
             <div className="card">
-              <div className="cardIcon">▱</div>
+
+              <div className="cardIcon">
+                ▱
+              </div>
 
               <div>
-                <span>TOTALE IMPORT</span>
-                <h3>$0</h3>
-                <p>Totale speso in forniture</p>
+                <span>
+                  TOTALE IMPORT
+                </span>
+
+                <h3>
+                  ${formatMoney(totaleImport)}
+                </h3>
+
+                <p>
+                  Totale speso in forniture
+                </p>
               </div>
+
             </div>
 
           </div>
 
           <div className="welcome">
+
             <span className="goldLine"></span>
 
             <p className="welcomeLabel">
               GESTIONALE UFFICIALE
             </p>
 
-            <h2>AQUA BAR</h2>
+            <h2>
+              AQUA BAR
+            </h2>
 
             <p className="welcomeText">
               Gestisci fatture, vendite e forniture del locale.
             </p>
+
           </div>
 
         </section>
+
       </div>
     </main>
   );
