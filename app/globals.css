@@ -2687,3 +2687,123 @@ header h2 {
   background: rgba(212, 175, 55, 0.06);
   border-color: rgba(212, 175, 55, 0.3);
 }
+/* =========================================
+   AQUA BAR - MENU + LOGOUT DEFINITIVO
+========================================= */
+
+/* VOCI MENU */
+
+.sidebar nav button {
+  width: 100%;
+  min-height: 50px;
+
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  padding: 0 17px;
+
+  background: transparent;
+
+  border: 1px solid transparent;
+  border-radius: 12px;
+
+  color: rgba(255, 255, 255, 0.78);
+
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.sidebar nav button:hover {
+  color: #f0cf72;
+
+  background: rgba(212, 175, 55, 0.08);
+
+  border-color: rgba(212, 175, 55, 0.22);
+
+  transform: translateX(2px);
+}
+
+
+/* PAGINA ATTIVA - ES. DIPENDENTI */
+
+.sidebar nav button.active {
+  color: #f2d276;
+
+  background: linear-gradient(
+    90deg,
+    rgba(212, 175, 55, 0.16),
+    rgba(212, 175, 55, 0.05)
+  );
+
+  border: 1px solid rgba(212, 175, 55, 0.38);
+
+  box-shadow:
+    inset 3px 0 0 #d4af37,
+    0 5px 20px rgba(0, 0, 0, 0.12);
+}
+
+.sidebar nav button.active .navIcon {
+  color: #f2d276;
+}
+
+
+/* =========================================
+   PULSANTE ESCI
+========================================= */
+
+.logoutButton {
+  height: 38px;
+
+  margin-left: 8px;
+  padding: 0 18px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid rgba(212, 175, 55, 0.38);
+  border-radius: 10px;
+
+  background: rgba(212, 175, 55, 0.07);
+
+  color: #e2c66d;
+
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.3px;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.logoutButton:hover {
+  color: #f5d87e;
+
+  background: rgba(212, 175, 55, 0.15);
+
+  border-color: rgba(212, 175, 55, 0.7);
+
+  box-shadow:
+    0 0 18px rgba(212, 175, 55, 0.10);
+
+  transform: translateY(-1px);
+}
+
+.logoutButton:active {
+  transform: translateY(0);
+}
