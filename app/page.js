@@ -19,12 +19,6 @@ export default function Home() {
 
   async function loadDashboard() {
     try {
-      /*
-        CONTROLLO SESSIONE
-
-        getSession() è più rapido per la navigazione interna
-        perché utilizza la sessione già disponibile nel browser.
-      */
       const {
         data: { session },
         error: sessionError,
@@ -37,11 +31,6 @@ export default function Home() {
 
       const user = session.user;
 
-      /*
-        CARICHIAMO TUTTO CONTEMPORANEAMENTE
-        invece di aspettare una richiesta alla volta.
-      */
-
       const [
         profileResult,
         accountResult,
@@ -50,7 +39,7 @@ export default function Home() {
       ] = await Promise.all([
         supabase
           .from("profiles")
-          .select("nome, ruolo")
+          .select("nome, ruolo, attivo")
           .eq("id", user.id)
           .single(),
 
@@ -69,9 +58,7 @@ export default function Home() {
         supabase.rpc("totale_import_attivi"),
       ]);
 
-      /*
-        PROFILO
-      */
+      /* PROFILO */
 
       if (profileResult.error) {
         console.error(
@@ -79,12 +66,16 @@ export default function Home() {
           profileResult.error
         );
       } else {
+        if (profileResult.data?.attivo === false) {
+          await supabase.auth.signOut();
+          router.replace("/login");
+          return;
+        }
+
         setProfile(profileResult.data);
       }
 
-      /*
-        FONDO CASSA
-      */
+      /* FONDO CASSA */
 
       if (accountResult.error) {
         console.error(
@@ -97,9 +88,7 @@ export default function Home() {
         );
       }
 
-      /*
-        FATTURATO PERSONALE
-      */
+      /* FATTURATO PERSONALE */
 
       if (invoiceResult.error) {
         console.error(
@@ -118,9 +107,7 @@ export default function Home() {
         setFatturato(totale);
       }
 
-      /*
-        TOTALE IMPORT
-      */
+      /* TOTALE IMPORT */
 
       if (importResult.error) {
         console.error(
@@ -144,18 +131,14 @@ export default function Home() {
     }
   }
 
-  /*
-    LOGOUT
-  */
+  /* LOGOUT */
 
   async function logout() {
     await supabase.auth.signOut();
     router.replace("/login");
   }
 
-  /*
-    FORMATTAZIONE SOLDI
-  */
+  /* FORMATTAZIONE SOLDI */
 
   function formatMoney(value) {
     return Number(value || 0).toLocaleString(
@@ -167,9 +150,7 @@ export default function Home() {
     );
   }
 
-  /*
-    SCHERMATA CARICAMENTO
-  */
+  /* CARICAMENTO */
 
   if (loading) {
     return (
@@ -186,7 +167,9 @@ export default function Home() {
 
       <div className="overlay">
 
-        {/* SIDEBAR */}
+        {/* =========================
+            SIDEBAR
+        ========================= */}
 
         <aside className="sidebar">
 
@@ -197,12 +180,17 @@ export default function Home() {
 
           <nav>
 
+            {/* DASHBOARD */}
+
             <button className="active">
               <span className="navIcon">
                 ⌂
               </span>
+
               Dashboard
             </button>
+
+            {/* FATTURE */}
 
             <button
               onClick={() =>
@@ -212,8 +200,11 @@ export default function Home() {
               <span className="navIcon">
                 ▤
               </span>
+
               Fatture
             </button>
+
+            {/* IMPORT */}
 
             <button
               onClick={() =>
@@ -223,34 +214,69 @@ export default function Home() {
               <span className="navIcon">
                 ◇
               </span>
+
               Import
             </button>
 
+            {/* MENU AMMINISTRATORE */}
+
             {profile?.ruolo === "admin" && (
-              <button
-                onClick={() =>
-                  router.push("/stipendi")
-                }
-              >
-                <span className="navIcon">
-                  ♙
-                </span>
-                Stipendi
-              </button>
+              <>
+
+                {/* STIPENDI */}
+
+                <button
+                  onClick={() =>
+                    router.push("/stipendi")
+                  }
+                >
+                  <span className="navIcon">
+                    ♙
+                  </span>
+
+                  Stipendi
+                </button>
+
+                {/* DIPENDENTI */}
+
+                <button
+                  onClick={() =>
+                    router.push("/dipendenti")
+                  }
+                >
+                  <span className="navIcon">
+                    ♟
+                  </span>
+
+                  Dipendenti
+                </button>
+
+              </>
             )}
 
           </nav>
 
           <div className="sidebarBottom">
-            <p>Gestionale AQUA BAR</p>
-            <small>FiveM Management</small>
+
+            <p>
+              Gestionale AQUA BAR
+            </p>
+
+            <small>
+              FiveM Management
+            </small>
+
           </div>
 
         </aside>
 
-        {/* CONTENUTO */}
+        {/* =========================
+            CONTENUTO
+        ========================= */}
 
         <section className="content">
+
+          {/* HEADER */}
 
           <header>
 
@@ -275,15 +301,19 @@ export default function Home() {
             <div className="user">
 
               <div className="avatar">
+
                 {profile?.nome
                   ?.charAt(0)
-                  .toUpperCase() || "A"}
+                  .toUpperCase() ||
+                  "A"}
+
               </div>
 
               <div className="userInfo">
 
                 <strong>
-                  {profile?.nome || "Utente"}
+                  {profile?.nome ||
+                    "Utente"}
                 </strong>
 
                 <span>
@@ -309,7 +339,9 @@ export default function Home() {
 
           </header>
 
-          {/* CARDS */}
+          {/* =========================
+              CARDS
+          ========================= */}
 
           <div className="cards">
 
@@ -339,7 +371,7 @@ export default function Home() {
 
             </div>
 
-            {/* FATTURATO */}
+            {/* FATTURATO PERSONALE */}
 
             <div className="card">
 
@@ -365,7 +397,7 @@ export default function Home() {
 
             </div>
 
-            {/* IMPORT */}
+            {/* TOTALE IMPORT */}
 
             <div className="card">
 
@@ -393,7 +425,9 @@ export default function Home() {
 
           </div>
 
-          {/* BENVENUTO */}
+          {/* =========================
+              BENVENUTO
+          ========================= */}
 
           <div className="welcome">
 
@@ -408,8 +442,8 @@ export default function Home() {
             </h2>
 
             <p className="welcomeText">
-              Gestisci fatture, vendite
-              e forniture del locale.
+              Gestisci fatture, vendite,
+              forniture e personale del locale.
             </p>
 
           </div>
