@@ -89,9 +89,7 @@ export default function DipendentiPage() {
 
   /*
     =========================================
-    ELENCO DIPENDENTI
-
-    Questa lettura sappiamo già che funziona.
+    CARICA ELENCO DIPENDENTI
     =========================================
   */
 
@@ -131,14 +129,6 @@ export default function DipendentiPage() {
   /*
     =========================================
     EDGE FUNCTION
-
-    Usata SOLO per:
-    - assumere
-    - licenziare
-    - riattivare
-
-    L'elenco invece continua a essere letto
-    direttamente dalla tabella profiles.
     =========================================
   */
 
@@ -168,35 +158,56 @@ export default function DipendentiPage() {
         error
       );
 
+      let messaggio =
+        error.message ||
+        "Errore durante l'operazione.";
+
       /*
-        Proviamo a recuperare il messaggio
-        restituito dalla funzione.
+        Supabase può restituire context
+        in forme differenti.
+
+        Controlliamo prima che .json()
+        esista davvero.
       */
 
       try {
-        if (error.context) {
+        if (
+          error.context &&
+          typeof error.context.json ===
+            "function"
+        ) {
           const result =
             await error.context.json();
 
           if (result?.error) {
-            throw new Error(
-              result.error
-            );
+            messaggio =
+              result.error;
+          } else if (
+            result?.message
+          ) {
+            messaggio =
+              result.message;
           }
+        } else if (
+          error.context?.error
+        ) {
+          messaggio =
+            error.context.error;
+        } else if (
+          error.context?.message
+        ) {
+          messaggio =
+            error.context.message;
         }
       } catch (contextError) {
-        if (
-          contextError instanceof Error &&
-          contextError.message !==
-            "Errore Edge Function"
-        ) {
-          throw contextError;
-        }
+        console.error(
+          "Errore lettura dettaglio:",
+          contextError
+        );
       }
 
       throw new Error(
-        error.message ||
-          "Errore durante l'operazione."
+        messaggio
       );
     }
 
@@ -292,7 +303,8 @@ export default function DipendentiPage() {
         await gestioneDipendente({
           action: "assumi",
 
-          nome: cleanNome,
+          nome:
+            cleanNome,
 
           username:
             cleanUsername,
@@ -341,7 +353,7 @@ export default function DipendentiPage() {
 
   /*
     =========================================
-    LICENZIA
+    LICENZIA DIPENDENTE
     =========================================
   */
 
@@ -374,7 +386,8 @@ export default function DipendentiPage() {
     try {
       const result =
         await gestioneDipendente({
-          action: "licenzia",
+          action:
+            "licenzia",
 
           employee_id:
             dipendente.id,
@@ -405,7 +418,7 @@ export default function DipendentiPage() {
 
   /*
     =========================================
-    RIASSUMI
+    RIASSUMI DIPENDENTE
     =========================================
   */
 
@@ -432,7 +445,8 @@ export default function DipendentiPage() {
     try {
       const result =
         await gestioneDipendente({
-          action: "riattiva",
+          action:
+            "riattiva",
 
           employee_id:
             dipendente.id,
@@ -475,12 +489,14 @@ export default function DipendentiPage() {
 
   /*
     =========================================
-    DATA
+    FORMATO DATA
     =========================================
   */
 
   function formatDate(value) {
-    if (!value) return "-";
+    if (!value) {
+      return "-";
+    }
 
     return new Date(
       value
@@ -523,15 +539,20 @@ export default function DipendentiPage() {
 
       <div className="overlay">
 
-        {/* =================================
-            SIDEBAR
-        ================================= */}
+        {/* SIDEBAR */}
 
         <aside className="sidebar">
 
           <div className="brand">
-            <h1>AQUA</h1>
-            <span>BAR</span>
+
+            <h1>
+              AQUA
+            </h1>
+
+            <span>
+              BAR
+            </span>
+
           </div>
 
           <nav>
@@ -541,11 +562,13 @@ export default function DipendentiPage() {
                 router.push("/")
               }
             >
+
               <span className="navIcon">
                 ⌂
               </span>
 
               Dashboard
+
             </button>
 
             <button
@@ -555,11 +578,13 @@ export default function DipendentiPage() {
                 )
               }
             >
+
               <span className="navIcon">
                 ▤
               </span>
 
               Fatture
+
             </button>
 
             <button
@@ -569,11 +594,13 @@ export default function DipendentiPage() {
                 )
               }
             >
+
               <span className="navIcon">
                 ◇
               </span>
 
               Import
+
             </button>
 
             <button
@@ -583,11 +610,13 @@ export default function DipendentiPage() {
                 )
               }
             >
+
               <span className="navIcon">
                 ♙
               </span>
 
               Stipendi
+
             </button>
 
             <button className="active">
@@ -616,9 +645,7 @@ export default function DipendentiPage() {
 
         </aside>
 
-        {/* =================================
-            CONTENUTO
-        ================================= */}
+        {/* CONTENUTO */}
 
         <section className="content">
 
@@ -681,9 +708,7 @@ export default function DipendentiPage() {
 
           </header>
 
-          {/* =================================
-              NUOVA ASSUNZIONE
-          ================================= */}
+          {/* NUOVA ASSUNZIONE */}
 
           <div className="employeeCreateCard">
 
@@ -711,8 +736,6 @@ export default function DipendentiPage() {
               }
             >
 
-              {/* NOME */}
-
               <div className="employeeField">
 
                 <label>
@@ -732,8 +755,6 @@ export default function DipendentiPage() {
                 />
 
               </div>
-
-              {/* USERNAME */}
 
               <div className="employeeField">
 
@@ -756,8 +777,6 @@ export default function DipendentiPage() {
 
               </div>
 
-              {/* PASSWORD */}
-
               <div className="employeeField">
 
                 <label>
@@ -779,8 +798,6 @@ export default function DipendentiPage() {
 
               </div>
 
-              {/* RUOLO */}
-
               <div className="employeeField">
 
                 <label>
@@ -801,8 +818,6 @@ export default function DipendentiPage() {
                 />
 
               </div>
-
-              {/* PERCENTUALE */}
 
               <div className="employeeField">
 
@@ -843,9 +858,7 @@ export default function DipendentiPage() {
 
           </div>
 
-          {/* =================================
-              MESSAGGI
-          ================================= */}
+          {/* MESSAGGIO */}
 
           {message && (
 
@@ -863,9 +876,7 @@ export default function DipendentiPage() {
 
           )}
 
-          {/* =================================
-              ELENCO DIPENDENTI
-          ================================= */}
+          {/* ELENCO DIPENDENTI */}
 
           <div className="employeeListCard">
 
@@ -899,8 +910,7 @@ export default function DipendentiPage() {
 
             </div>
 
-            {dipendenti.length ===
-            0 ? (
+            {dipendenti.length === 0 ? (
 
               <p className="emptyCart">
                 Nessun dipendente trovato.
@@ -947,11 +957,9 @@ export default function DipendentiPage() {
                           </strong>
 
                           <span>
-
                             @
                             {dipendente.username ||
                               "-"}
-
                           </span>
 
                         </div>
@@ -999,7 +1007,7 @@ export default function DipendentiPage() {
 
                       </div>
 
-                      {/* DATA */}
+                      {/* DATA ASSUNZIONE */}
 
                       <div className="employeeInfo">
 
