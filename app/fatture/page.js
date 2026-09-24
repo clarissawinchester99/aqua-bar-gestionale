@@ -275,13 +275,6 @@ export default function FatturePage() {
     =====================================
     REGISTRAZIONE FATTURE
     =====================================
-
-    Ora utilizza registra_fattura.
-
-    Supabase:
-    - crea la fattura
-    - crea invoice_items
-    - aggiunge il totale al Fondo Cassa
   */
 
   async function confirmInvoices() {
@@ -351,11 +344,6 @@ export default function FatturePage() {
     =====================================
     ANNULLAMENTO FATTURA
     =====================================
-
-    Supabase:
-    - segna la fattura come annullata
-    - la esclude dal fatturato
-    - sottrae il totale dal Fondo Cassa
   */
 
   async function cancelInvoice(invoice) {
@@ -498,25 +486,34 @@ export default function FatturePage() {
               Import
             </button>
 
-            {profile?.ruolo ===
-              "admin" && (
+            {profile?.ruolo === "admin" && (
+              <>
 
-              <button
-                onClick={() =>
-                  router.push(
-                    "/stipendi"
-                  )
-                }
-              >
+                <button
+                  onClick={() =>
+                    router.push("/stipendi")
+                  }
+                >
+                  <span className="navIcon">
+                    ♙
+                  </span>
 
-                <span className="navIcon">
-                  ♙
-                </span>
+                  Stipendi
+                </button>
 
-                Stipendi
+                <button
+                  onClick={() =>
+                    router.push("/dipendenti")
+                  }
+                >
+                  <span className="navIcon">
+                    ♟
+                  </span>
 
-              </button>
+                  Dipendenti
+                </button>
 
+              </>
             )}
 
           </nav>
