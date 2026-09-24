@@ -2634,3 +2634,56 @@ header h2 {
     width: 100%;
   }
 }
+/* =========================================
+   TENDINA RUOLI DIPENDENTI
+========================================= */
+
+.employeeField select {
+  width: 100%;
+  height: 48px;
+  padding: 0 42px 0 14px;
+  box-sizing: border-box;
+
+  background-color: rgba(0, 0, 0, 0.85);
+
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 11px;
+
+  color: #ffffff;
+
+  font-size: 14px;
+  font-family: inherit;
+
+  outline: none;
+  cursor: pointer;
+
+  transition: 0.2s ease;
+
+  appearance: auto;
+  -webkit-appearance: menulist;
+}
+
+.employeeField select:focus {
+  border-color: #d4af37;
+
+  box-shadow:
+    0 0 0 3px rgba(212, 175, 55, 0.07),
+    0 0 20px rgba(212, 175, 55, 0.06);
+}
+
+.employeeField select option {
+  background: #101114;
+  color: #ffffff;
+  padding: 10px;
+}
+
+/* Percentuale automatica */
+
+.employeeField input[readonly] {
+  color: #d4af37;
+  font-weight: 800;
+  cursor: default;
+
+  background: rgba(212, 175, 55, 0.06);
+  border-color: rgba(212, 175, 55, 0.3);
+}
