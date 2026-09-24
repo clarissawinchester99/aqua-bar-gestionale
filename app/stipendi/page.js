@@ -10,7 +10,6 @@ export default function StipendiPage() {
   const [profile, setProfile] = useState(null);
   const [stipendi, setStipendi] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [savingId, setSavingId] = useState(null);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -19,6 +18,7 @@ export default function StipendiPage() {
 
   async function loadPage() {
     setLoading(true);
+    setMessage("");
 
     const {
       data: { user },
@@ -30,12 +30,14 @@ export default function StipendiPage() {
       return;
     }
 
-    const { data: profileData, error: profileError } =
-      await supabase
-        .from("profiles")
-        .select("nome, ruolo")
-        .eq("id", user.id)
-        .single();
+    const {
+      data: profileData,
+      error: profileError,
+    } = await supabase
+      .from("profiles")
+      .select("nome, ruolo")
+      .eq("id", user.id)
+      .single();
 
     if (profileError || !profileData) {
       router.replace("/");
@@ -60,99 +62,32 @@ export default function StipendiPage() {
       await supabase.rpc("get_stipendi");
 
     if (error) {
-      console.error("Errore stipendi:", error);
+      console.error(
+        "Errore stipendi:",
+        error
+      );
+
       setMessage(
         "Errore durante il caricamento degli stipendi."
       );
+
       return;
     }
 
-    setStipendi(
-      (data || []).map((dipendente) => ({
-        ...dipendente,
-        ruoloEdit:
-          dipendente.ruolo_lavorativo ||
-          "Dipendente",
-        percentualeEdit:
-          dipendente.percentuale ?? 0,
-      }))
-    );
-  }
-
-  function updateLocal(id, field, value) {
-    setStipendi((current) =>
-      current.map((dipendente) =>
-        dipendente.employee_id === id
-          ? {
-              ...dipendente,
-              [field]: value,
-            }
-          : dipendente
-      )
-    );
-  }
-
-  async function saveEmployee(dipendente) {
-    setMessage("");
-
-    const percentuale = Number(
-      dipendente.percentualeEdit
-    );
-
-    if (
-      Number.isNaN(percentuale) ||
-      percentuale < 0 ||
-      percentuale > 100
-    ) {
-      setMessage(
-        "La percentuale deve essere compresa tra 0 e 100."
-      );
-      return;
-    }
-
-    if (!dipendente.ruoloEdit?.trim()) {
-      setMessage(
-        "Inserisci un ruolo lavorativo."
-      );
-      return;
-    }
-
-    setSavingId(dipendente.employee_id);
-
-    const { error } = await supabase.rpc(
-      "aggiorna_stipendio_dipendente",
-      {
-        p_employee_id:
-          dipendente.employee_id,
-
-        p_ruolo_lavorativo:
-          dipendente.ruoloEdit.trim(),
-
-        p_percentuale: percentuale,
-      }
-    );
-
-    if (error) {
-      console.error(error);
-
-      setMessage(
-        "Errore durante il salvataggio."
-      );
-
-      setSavingId(null);
-      return;
-    }
-
-    setMessage(
-      `Stipendio di ${dipendente.nome} aggiornato correttamente.`
-    );
-
-    await loadStipendi();
-
-    setSavingId(null);
+    setStipendi(data || []);
   }
 
   function formatMoney(value) {
+    return Number(value || 0).toLocaleString(
+      "it-IT",
+      {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }
+    );
+  }
+
+  function formatPercentage(value) {
     return Number(value || 0).toLocaleString(
       "it-IT",
       {
@@ -178,22 +113,31 @@ export default function StipendiPage() {
   }
 
   const totaleFatturato = stipendi.reduce(
-    (sum, d) =>
-      sum + Number(d.fatturato || 0),
+    (sum, dipendente) =>
+      sum +
+      Number(
+        dipendente.fatturato || 0
+      ),
     0
   );
 
   const totaleStipendi = stipendi.reduce(
-    (sum, d) =>
-      sum + Number(d.stipendio || 0),
+    (sum, dipendente) =>
+      sum +
+      Number(
+        dipendente.stipendio || 0
+      ),
     0
   );
 
   return (
     <main>
+
       <div className="overlay">
 
-        {/* SIDEBAR */}
+        {/* =========================
+            SIDEBAR
+        ========================= */}
 
         <aside className="sidebar">
 
@@ -205,11 +149,14 @@ export default function StipendiPage() {
           <nav>
 
             <button
-              onClick={() => router.push("/")}
+              onClick={() =>
+                router.push("/")
+              }
             >
               <span className="navIcon">
                 ⌂
               </span>
+
               Dashboard
             </button>
 
@@ -221,6 +168,7 @@ export default function StipendiPage() {
               <span className="navIcon">
                 ▤
               </span>
+
               Fatture
             </button>
 
@@ -232,6 +180,7 @@ export default function StipendiPage() {
               <span className="navIcon">
                 ◇
               </span>
+
               Import
             </button>
 
@@ -239,6 +188,7 @@ export default function StipendiPage() {
               <span className="navIcon">
                 ♙
               </span>
+
               Stipendi
             </button>
 
@@ -250,24 +200,35 @@ export default function StipendiPage() {
               <span className="navIcon">
                 ♟
               </span>
+
               Dipendenti
             </button>
 
           </nav>
 
           <div className="sidebarBottom">
-            <p>Gestionale AQUA BAR</p>
+
+            <p>
+              Gestionale AQUA BAR
+            </p>
 
             <small>
               FiveM Management
             </small>
+
           </div>
 
         </aside>
 
-        {/* CONTENUTO */}
+        {/* =========================
+            CONTENUTO
+        ========================= */}
 
         <section className="content">
+
+          {/* =========================
+              HEADER
+          ========================= */}
 
           <header>
 
@@ -282,7 +243,7 @@ export default function StipendiPage() {
               </h2>
 
               <p className="subtitle">
-                Gestione stipendi dei dipendenti
+                Gestione automatica degli stipendi
               </p>
 
             </div>
@@ -290,9 +251,12 @@ export default function StipendiPage() {
             <div className="user">
 
               <div className="avatar">
+
                 {profile?.nome
                   ?.charAt(0)
-                  .toUpperCase() || "A"}
+                  .toUpperCase() ||
+                  "A"}
+
               </div>
 
               <div className="userInfo">
@@ -302,8 +266,11 @@ export default function StipendiPage() {
                 </strong>
 
                 <span>
+
                   <i className="onlineDot"></i>
+
                   Amministratore
+
                 </span>
 
               </div>
@@ -319,9 +286,13 @@ export default function StipendiPage() {
 
           </header>
 
-          {/* CARDS */}
+          {/* =========================
+              CARDS
+          ========================= */}
 
           <div className="salaryCards">
+
+            {/* DIPENDENTI */}
 
             <div className="card">
 
@@ -346,6 +317,8 @@ export default function StipendiPage() {
               </div>
 
             </div>
+
+            {/* FATTURATO */}
 
             <div className="card">
 
@@ -373,6 +346,8 @@ export default function StipendiPage() {
               </div>
 
             </div>
+
+            {/* STIPENDI */}
 
             <div className="card">
 
@@ -403,15 +378,21 @@ export default function StipendiPage() {
 
           </div>
 
-          {/* MESSAGGI */}
+          {/* =========================
+              MESSAGGI
+          ========================= */}
 
           {message && (
+
             <div className="salaryMessage">
               {message}
             </div>
+
           )}
 
-          {/* PANNELLO STIPENDI */}
+          {/* =========================
+              PANNELLO STIPENDI
+          ========================= */}
 
           <div className="salaryPanel">
 
@@ -424,12 +405,13 @@ export default function StipendiPage() {
                 </p>
 
                 <h2>
-                  Gestione Dipendenti
+                  Stipendi Dipendenti
                 </h2>
 
                 <p>
-                  Imposta ruolo e percentuale
-                  sul fatturato.
+                  Ruolo e percentuale vengono
+                  assegnati automaticamente
+                  dalla gestione Dipendenti.
                 </p>
 
               </div>
@@ -440,118 +422,136 @@ export default function StipendiPage() {
 
             </div>
 
+            {/* =========================
+                INTESTAZIONE
+            ========================= */}
+
             <div className="salaryTableHeader">
 
-              <span>DIPENDENTE</span>
-              <span>RUOLO</span>
-              <span>PERCENTUALE</span>
-              <span>FATTURATO</span>
-              <span>STIPENDIO</span>
+              <span>
+                DIPENDENTE
+              </span>
+
+              <span>
+                RUOLO
+              </span>
+
+              <span>
+                PERCENTUALE
+              </span>
+
+              <span>
+                FATTURATO
+              </span>
+
+              <span>
+                STIPENDIO
+              </span>
+
               <span></span>
 
             </div>
 
+            {/* =========================
+                LISTA
+            ========================= */}
+
             <div className="salaryList">
 
-              {stipendi.map(
-                (dipendente) => (
+              {stipendi.length === 0 ? (
 
-                  <div
-                    className="salaryRow"
-                    key={
-                      dipendente.employee_id
-                    }
-                  >
+                <div className="emptyCart">
+                  Nessun dipendente registrato.
+                </div>
 
-                    <div className="salaryEmployee">
+              ) : (
 
-                      <div className="salaryAvatar">
-                        {dipendente.nome
-                          ?.charAt(0)
-                          .toUpperCase() ||
-                          "D"}
-                      </div>
+                stipendi.map(
+                  (dipendente) => (
 
-                      <strong>
-                        {dipendente.nome}
-                      </strong>
-
-                    </div>
-
-                    <input
-                      className="salaryRoleInput"
-                      type="text"
-                      value={
-                        dipendente.ruoloEdit
-                      }
-                      onChange={(e) =>
-                        updateLocal(
-                          dipendente.employee_id,
-                          "ruoloEdit",
-                          e.target.value
-                        )
-                      }
-                      placeholder="Bartender"
-                    />
-
-                    <div className="salaryPercentage">
-
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.01"
-                        value={
-                          dipendente.percentualeEdit
-                        }
-                        onChange={(e) =>
-                          updateLocal(
-                            dipendente.employee_id,
-                            "percentualeEdit",
-                            e.target.value
-                          )
-                        }
-                      />
-
-                      <span>%</span>
-
-                    </div>
-
-                    <strong className="salaryRevenue">
-                      $
-                      {formatMoney(
-                        dipendente.fatturato
-                      )}
-                    </strong>
-
-                    <strong className="salaryAmount">
-                      $
-                      {formatMoney(
-                        dipendente.stipendio
-                      )}
-                    </strong>
-
-                    <button
-                      className="salarySaveButton"
-                      onClick={() =>
-                        saveEmployee(
-                          dipendente
-                        )
-                      }
-                      disabled={
-                        savingId ===
+                    <div
+                      className="salaryRow"
+                      key={
                         dipendente.employee_id
                       }
                     >
-                      {savingId ===
-                      dipendente.employee_id
-                        ? "SALVO..."
-                        : "SALVA"}
-                    </button>
 
-                  </div>
+                      {/* DIPENDENTE */}
 
+                      <div className="salaryEmployee">
+
+                        <div className="salaryAvatar">
+
+                          {dipendente.nome
+                            ?.charAt(0)
+                            .toUpperCase() ||
+                            "D"}
+
+                        </div>
+
+                        <strong>
+                          {dipendente.nome}
+                        </strong>
+
+                      </div>
+
+                      {/* RUOLO */}
+
+                      <div className="salaryRoleDisplay">
+
+                        <span>
+                          {dipendente.ruolo_lavorativo ||
+                            "Dipendente"}
+                        </span>
+
+                      </div>
+
+                      {/* PERCENTUALE */}
+
+                      <div className="salaryPercentageDisplay">
+
+                        <strong>
+                          {formatPercentage(
+                            dipendente.percentuale
+                          )}
+                          %
+                        </strong>
+
+                      </div>
+
+                      {/* FATTURATO */}
+
+                      <strong className="salaryRevenue">
+
+                        $
+                        {formatMoney(
+                          dipendente.fatturato
+                        )}
+
+                      </strong>
+
+                      {/* STIPENDIO */}
+
+                      <strong className="salaryAmount">
+
+                        $
+                        {formatMoney(
+                          dipendente.stipendio
+                        )}
+
+                      </strong>
+
+                      {/* AUTOMATICO */}
+
+                      <div className="salaryAutoBadge">
+                        AUTO
+                      </div>
+
+                    </div>
+
+                  )
                 )
+
               )}
 
             </div>
@@ -561,6 +561,7 @@ export default function StipendiPage() {
         </section>
 
       </div>
+
     </main>
   );
 }
