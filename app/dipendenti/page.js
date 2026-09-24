@@ -4,6 +4,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 
+const RUOLI = {
+  Proprietario: 45,
+  Direttore: 40,
+  "Vice-Direttore": 30,
+  Barista: 25,
+  Dipendente: 20,
+};
+
 export default function DipendentiPage() {
   const router = useRouter();
 
@@ -13,9 +21,9 @@ export default function DipendentiPage() {
   const [nome, setNome] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+
   const [ruoloLavorativo, setRuoloLavorativo] =
     useState("Dipendente");
-  const [percentuale, setPercentuale] = useState(0);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -24,15 +32,11 @@ export default function DipendentiPage() {
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
 
+  const percentuale = RUOLI[ruoloLavorativo] ?? 20;
+
   useEffect(() => {
     loadPage();
   }, []);
-
-  /*
-    =========================================
-    CARICAMENTO PAGINA
-    =========================================
-  */
 
   async function loadPage() {
     setLoading(true);
@@ -57,11 +61,7 @@ export default function DipendentiPage() {
 
       if (profileError || !profilo) {
         console.error(profileError);
-
-        setMessage(
-          "Errore nel caricamento del profilo."
-        );
-
+        setMessage("Errore nel caricamento del profilo.");
         return;
       }
 
@@ -78,20 +78,11 @@ export default function DipendentiPage() {
       await loadDipendenti();
     } catch (error) {
       console.error(error);
-
-      setMessage(
-        "Errore durante il caricamento."
-      );
+      setMessage("Errore durante il caricamento.");
     } finally {
       setLoading(false);
     }
   }
-
-  /*
-    =========================================
-    CARICA ELENCO DIPENDENTI
-    =========================================
-  */
 
   async function loadDipendenti() {
     const { data, error } = await supabase
@@ -111,10 +102,7 @@ export default function DipendentiPage() {
       });
 
     if (error) {
-      console.error(
-        "Errore dipendenti:",
-        error
-      );
+      console.error("Errore dipendenti:", error);
 
       setMessage(
         "Non riesco a leggere l'elenco dipendenti."
@@ -126,12 +114,6 @@ export default function DipendentiPage() {
     setDipendenti(data || []);
   }
 
-  /*
-    =========================================
-    EDGE FUNCTION
-    =========================================
-  */
-
   async function gestioneDipendente(body) {
     const {
       data: { session },
@@ -139,9 +121,7 @@ export default function DipendentiPage() {
     } = await supabase.auth.getSession();
 
     if (sessionError || !session) {
-      throw new Error(
-        "Sessione non valida."
-      );
+      throw new Error("Sessione non valida.");
     }
 
     const { data, error } =
@@ -162,42 +142,23 @@ export default function DipendentiPage() {
         error.message ||
         "Errore durante l'operazione.";
 
-      /*
-        Supabase può restituire context
-        in forme differenti.
-
-        Controlliamo prima che .json()
-        esista davvero.
-      */
-
       try {
         if (
           error.context &&
-          typeof error.context.json ===
-            "function"
+          typeof error.context.json === "function"
         ) {
           const result =
             await error.context.json();
 
           if (result?.error) {
-            messaggio =
-              result.error;
-          } else if (
-            result?.message
-          ) {
-            messaggio =
-              result.message;
+            messaggio = result.error;
+          } else if (result?.message) {
+            messaggio = result.message;
           }
-        } else if (
-          error.context?.error
-        ) {
-          messaggio =
-            error.context.error;
-        } else if (
-          error.context?.message
-        ) {
-          messaggio =
-            error.context.message;
+        } else if (error.context?.error) {
+          messaggio = error.context.error;
+        } else if (error.context?.message) {
+          messaggio = error.context.message;
         }
       } catch (contextError) {
         console.error(
@@ -206,9 +167,7 @@ export default function DipendentiPage() {
         );
       }
 
-      throw new Error(
-        messaggio
-      );
+      throw new Error(messaggio);
     }
 
     if (!data?.success) {
@@ -221,12 +180,6 @@ export default function DipendentiPage() {
     return data;
   }
 
-  /*
-    =========================================
-    ASSUMI DIPENDENTE
-    =========================================
-  */
-
   async function assumiDipendente(e) {
     e.preventDefault();
 
@@ -235,8 +188,7 @@ export default function DipendentiPage() {
     setMessage("");
     setSuccess(false);
 
-    const cleanNome =
-      nome.trim();
+    const cleanNome = nome.trim();
 
     const cleanUsername =
       username
@@ -245,11 +197,10 @@ export default function DipendentiPage() {
         .replace(/\s+/g, "");
 
     const cleanRuolo =
-      ruoloLavorativo.trim() ||
-      "Dipendente";
+      ruoloLavorativo;
 
     const percentualeNumero =
-      Number(percentuale || 0);
+      RUOLI[cleanRuolo];
 
     if (!cleanNome) {
       setMessage(
@@ -266,9 +217,7 @@ export default function DipendentiPage() {
     }
 
     if (
-      !/^[a-z0-9._-]+$/.test(
-        cleanUsername
-      )
+      !/^[a-z0-9._-]+$/.test(cleanUsername)
     ) {
       setMessage(
         "Lo username può contenere solo lettere, numeri, punto, trattino e underscore."
@@ -284,14 +233,13 @@ export default function DipendentiPage() {
     }
 
     if (
-      !Number.isFinite(
-        percentualeNumero
-      ) ||
-      percentualeNumero < 0 ||
-      percentualeNumero > 100
+      !Object.prototype.hasOwnProperty.call(
+        RUOLI,
+        cleanRuolo
+      )
     ) {
       setMessage(
-        "La percentuale stipendio deve essere compresa tra 0 e 100."
+        "Seleziona un ruolo valido."
       );
       return;
     }
@@ -303,11 +251,9 @@ export default function DipendentiPage() {
         await gestioneDipendente({
           action: "assumi",
 
-          nome:
-            cleanNome,
+          nome: cleanNome,
 
-          username:
-            cleanUsername,
+          username: cleanUsername,
 
           password,
 
@@ -325,8 +271,6 @@ export default function DipendentiPage() {
       setRuoloLavorativo(
         "Dipendente"
       );
-
-      setPercentuale(0);
 
       setMessage(
         result.message ||
@@ -351,12 +295,6 @@ export default function DipendentiPage() {
     }
   }
 
-  /*
-    =========================================
-    LICENZIA DIPENDENTE
-    =========================================
-  */
-
   async function licenziaDipendente(
     dipendente
   ) {
@@ -376,9 +314,7 @@ export default function DipendentiPage() {
 
     if (!conferma) return;
 
-    setActionId(
-      dipendente.id
-    );
+    setActionId(dipendente.id);
 
     setMessage("");
     setSuccess(false);
@@ -386,8 +322,7 @@ export default function DipendentiPage() {
     try {
       const result =
         await gestioneDipendente({
-          action:
-            "licenzia",
+          action: "licenzia",
 
           employee_id:
             dipendente.id,
@@ -416,12 +351,6 @@ export default function DipendentiPage() {
     }
   }
 
-  /*
-    =========================================
-    RIASSUMI DIPENDENTE
-    =========================================
-  */
-
   async function riattivaDipendente(
     dipendente
   ) {
@@ -435,9 +364,7 @@ export default function DipendentiPage() {
 
     if (!conferma) return;
 
-    setActionId(
-      dipendente.id
-    );
+    setActionId(dipendente.id);
 
     setMessage("");
     setSuccess(false);
@@ -445,8 +372,7 @@ export default function DipendentiPage() {
     try {
       const result =
         await gestioneDipendente({
-          action:
-            "riattiva",
+          action: "riattiva",
 
           employee_id:
             dipendente.id,
@@ -475,23 +401,10 @@ export default function DipendentiPage() {
     }
   }
 
-  /*
-    =========================================
-    LOGOUT
-    =========================================
-  */
-
   async function logout() {
     await supabase.auth.signOut();
-
     router.replace("/login");
   }
-
-  /*
-    =========================================
-    FORMATO DATA
-    =========================================
-  */
 
   function formatDate(value) {
     if (!value) {
@@ -510,49 +423,26 @@ export default function DipendentiPage() {
     );
   }
 
-  /*
-    =========================================
-    LOADING
-    =========================================
-  */
-
   if (loading) {
     return (
       <main className="loadingPage">
-
         <div className="loadingText">
           AQUA BAR
         </div>
-
       </main>
     );
   }
-
-  /*
-    =========================================
-    PAGINA
-    =========================================
-  */
 
   return (
     <main>
 
       <div className="overlay">
 
-        {/* SIDEBAR */}
-
         <aside className="sidebar">
 
           <div className="brand">
-
-            <h1>
-              AQUA
-            </h1>
-
-            <span>
-              BAR
-            </span>
-
+            <h1>AQUA</h1>
+            <span>BAR</span>
           </div>
 
           <nav>
@@ -562,77 +452,55 @@ export default function DipendentiPage() {
                 router.push("/")
               }
             >
-
               <span className="navIcon">
                 ⌂
               </span>
-
               Dashboard
-
             </button>
 
             <button
               onClick={() =>
-                router.push(
-                  "/fatture"
-                )
+                router.push("/fatture")
               }
             >
-
               <span className="navIcon">
                 ▤
               </span>
-
               Fatture
-
             </button>
 
             <button
               onClick={() =>
-                router.push(
-                  "/import"
-                )
+                router.push("/import")
               }
             >
-
               <span className="navIcon">
                 ◇
               </span>
-
               Import
-
             </button>
 
             <button
               onClick={() =>
-                router.push(
-                  "/stipendi"
-                )
+                router.push("/stipendi")
               }
             >
-
               <span className="navIcon">
                 ♙
               </span>
-
               Stipendi
-
             </button>
 
             <button className="active">
-
               <span className="navIcon">
                 ♟
               </span>
-
               Dipendenti
-
             </button>
 
           </nav>
 
           <div className="sidebarBottom">
-
             <p>
               Gestionale AQUA BAR
             </p>
@@ -640,21 +508,15 @@ export default function DipendentiPage() {
             <small>
               FiveM Management
             </small>
-
           </div>
 
         </aside>
 
-        {/* CONTENUTO */}
-
         <section className="content">
-
-          {/* HEADER */}
 
           <header>
 
             <div>
-
               <p className="eyebrow">
                 AQUA BAR
               </p>
@@ -666,18 +528,15 @@ export default function DipendentiPage() {
               <p className="subtitle">
                 Gestione del personale
               </p>
-
             </div>
 
             <div className="user">
 
               <div className="avatar">
-
                 {profile?.nome
                   ?.charAt(0)
                   .toUpperCase() ||
                   "A"}
-
               </div>
 
               <div className="userInfo">
@@ -688,11 +547,8 @@ export default function DipendentiPage() {
                 </strong>
 
                 <span>
-
                   <i className="onlineDot"></i>
-
                   Amministratore
-
                 </span>
 
               </div>
@@ -798,15 +654,15 @@ export default function DipendentiPage() {
 
               </div>
 
+              {/* TENDINA RUOLO */}
+
               <div className="employeeField">
 
                 <label>
                   RUOLO LAVORATIVO
                 </label>
 
-                <input
-                  type="text"
-                  placeholder="Es. Bartender"
+                <select
                   value={
                     ruoloLavorativo
                   }
@@ -815,9 +671,31 @@ export default function DipendentiPage() {
                       e.target.value
                     )
                   }
-                />
+                >
+                  <option value="Proprietario">
+                    Proprietario
+                  </option>
+
+                  <option value="Direttore">
+                    Direttore
+                  </option>
+
+                  <option value="Vice-Direttore">
+                    Vice-Direttore
+                  </option>
+
+                  <option value="Barista">
+                    Barista
+                  </option>
+
+                  <option value="Dipendente">
+                    Dipendente
+                  </option>
+                </select>
 
               </div>
+
+              {/* PERCENTUALE AUTOMATICA */}
 
               <div className="employeeField">
 
@@ -826,18 +704,10 @@ export default function DipendentiPage() {
                 </label>
 
                 <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  value={
-                    percentuale
-                  }
-                  onChange={(e) =>
-                    setPercentuale(
-                      e.target.value
-                    )
-                  }
+                  type="text"
+                  value={`${percentuale}%`}
+                  readOnly
+                  title="La percentuale viene assegnata automaticamente in base al ruolo."
                 />
 
               </div>
@@ -858,8 +728,6 @@ export default function DipendentiPage() {
 
           </div>
 
-          {/* MESSAGGIO */}
-
           {message && (
 
             <div
@@ -869,14 +737,12 @@ export default function DipendentiPage() {
                   : "invoiceMessage"
               }
             >
-
               {message}
-
             </div>
 
           )}
 
-          {/* ELENCO DIPENDENTI */}
+          {/* ELENCO */}
 
           <div className="employeeListCard">
 
@@ -935,8 +801,6 @@ export default function DipendentiPage() {
                       }
                     >
 
-                      {/* IDENTITÀ */}
-
                       <div className="employeeIdentity">
 
                         <div className="employeeAvatar">
@@ -966,8 +830,6 @@ export default function DipendentiPage() {
 
                       </div>
 
-                      {/* RUOLO */}
-
                       <div className="employeeInfo">
 
                         <small>
@@ -986,8 +848,6 @@ export default function DipendentiPage() {
 
                       </div>
 
-                      {/* STIPENDIO */}
-
                       <div className="employeeInfo">
 
                         <small>
@@ -999,15 +859,11 @@ export default function DipendentiPage() {
                           {Number(
                             dipendente.percentuale_stipendio ||
                               0
-                          )}
-
-                          %
+                          )}%
 
                         </strong>
 
                       </div>
-
-                      {/* DATA ASSUNZIONE */}
 
                       <div className="employeeInfo">
 
@@ -1016,16 +872,12 @@ export default function DipendentiPage() {
                         </small>
 
                         <strong>
-
                           {formatDate(
                             dipendente.created_at
                           )}
-
                         </strong>
 
                       </div>
-
-                      {/* STATO */}
 
                       <div className="employeeStatus">
 
@@ -1046,8 +898,6 @@ export default function DipendentiPage() {
                         </span>
 
                       </div>
-
-                      {/* AZIONI */}
 
                       <div className="employeeActions">
 
