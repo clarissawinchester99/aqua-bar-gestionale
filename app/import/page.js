@@ -36,13 +36,6 @@ export default function ImportPage() {
     setLoading(true);
 
     try {
-      /*
-        SESSIONE LOCALE
-
-        Più veloce durante il cambio pagina
-        perché non dobbiamo richiedere nuovamente
-        l'utente al server.
-      */
       const {
         data: { session },
         error: sessionError,
@@ -55,10 +48,6 @@ export default function ImportPage() {
 
       const user = session.user;
 
-      /*
-        PROFILO + FONDO CASSA + STORICO
-        vengono caricati contemporaneamente.
-      */
       const [
         profileResult,
         accountResult,
@@ -86,9 +75,6 @@ export default function ImportPage() {
           }),
       ]);
 
-      /*
-        PROFILO
-      */
       if (profileResult.error) {
         console.error(
           "Errore profilo:",
@@ -98,9 +84,6 @@ export default function ImportPage() {
         setProfile(profileResult.data);
       }
 
-      /*
-        FONDO CASSA
-      */
       if (accountResult.error) {
         console.error(
           "Errore fondo cassa:",
@@ -112,9 +95,6 @@ export default function ImportPage() {
         );
       }
 
-      /*
-        STORICO IMPORT
-      */
       if (importsResult.error) {
         console.error(
           "Errore storico import:",
@@ -135,10 +115,6 @@ export default function ImportPage() {
     }
   }
 
-  /*
-    RICARICA SOLO IL FONDO CASSA
-  */
-
   async function loadSaldo() {
     const { data, error } = await supabase
       .from("company_account")
@@ -158,10 +134,6 @@ export default function ImportPage() {
       Number(data?.saldo) || 0
     );
   }
-
-  /*
-    RICARICA SOLO LO STORICO IMPORT
-  */
 
   async function loadImports() {
     const { data, error } = await supabase
@@ -184,10 +156,6 @@ export default function ImportPage() {
     setImports(data || []);
   }
 
-  /*
-    FORMATTAZIONE SOLDI
-  */
-
   function formatMoney(value) {
     return Number(value || 0).toLocaleString(
       "it-IT",
@@ -197,10 +165,6 @@ export default function ImportPage() {
       }
     );
   }
-
-  /*
-    FORMATTAZIONE DATA
-  */
 
   function formatDate(value) {
     if (!value) return "-";
@@ -216,10 +180,6 @@ export default function ImportPage() {
       }
     );
   }
-
-  /*
-    QUANTITÀ KIT CIBO
-  */
 
   function handleCiboChange(e) {
     const value = e.target.value;
@@ -240,10 +200,6 @@ export default function ImportPage() {
     );
   }
 
-  /*
-    QUANTITÀ KIT BEVANDE
-  */
-
   function handleBevandeChange(e) {
     const value = e.target.value;
 
@@ -262,10 +218,6 @@ export default function ImportPage() {
       )
     );
   }
-
-  /*
-    CONFERMA IMPORT
-  */
 
   async function confirmImport() {
     if (saving) return;
@@ -329,10 +281,6 @@ export default function ImportPage() {
       return;
     }
 
-    /*
-      Aggiorniamo immediatamente
-      il saldo restituito dalla funzione.
-    */
     setSaldo(
       Number(data?.nuovo_saldo) || 0
     );
@@ -348,18 +296,10 @@ export default function ImportPage() {
 
     setSuccess(true);
 
-    /*
-      Ricarichiamo solamente lo storico,
-      non tutta la pagina.
-    */
     await loadImports();
 
     setSaving(false);
   }
-
-  /*
-    ANNULLA IMPORT
-  */
 
   async function cancelImport(order) {
     if (
@@ -414,10 +354,6 @@ export default function ImportPage() {
       return;
     }
 
-    /*
-      Il nuovo saldo arriva direttamente
-      dalla funzione Supabase.
-    */
     setSaldo(
       Number(data?.nuovo_saldo) || 0
     );
@@ -430,27 +366,16 @@ export default function ImportPage() {
 
     setSuccess(true);
 
-    /*
-      Aggiorniamo solamente lo storico.
-    */
     await loadImports();
 
     setCancellingId(null);
   }
-
-  /*
-    LOGOUT
-  */
 
   async function logout() {
     await supabase.auth.signOut();
 
     router.replace("/login");
   }
-
-  /*
-    CARICAMENTO INIZIALE
-  */
 
   if (loading) {
     return (
@@ -467,9 +392,7 @@ export default function ImportPage() {
 
       <div className="overlay">
 
-        {/* =========================
-            SIDEBAR
-        ========================= */}
+        {/* SIDEBAR */}
 
         <aside className="sidebar">
 
@@ -479,8 +402,6 @@ export default function ImportPage() {
           </div>
 
           <nav>
-
-            {/* DASHBOARD */}
 
             <button
               onClick={() =>
@@ -494,13 +415,9 @@ export default function ImportPage() {
               Dashboard
             </button>
 
-            {/* FATTURE */}
-
             <button
               onClick={() =>
-                router.push(
-                  "/fatture"
-                )
+                router.push("/fatture")
               }
             >
               <span className="navIcon">
@@ -510,8 +427,6 @@ export default function ImportPage() {
               Fatture
             </button>
 
-            {/* IMPORT */}
-
             <button className="active">
               <span className="navIcon">
                 ◇
@@ -520,25 +435,34 @@ export default function ImportPage() {
               Import
             </button>
 
-            {/* STIPENDI SOLO ADMIN */}
+            {profile?.ruolo === "admin" && (
+              <>
 
-            {profile?.ruolo ===
-              "admin" && (
+                <button
+                  onClick={() =>
+                    router.push("/stipendi")
+                  }
+                >
+                  <span className="navIcon">
+                    ♙
+                  </span>
 
-              <button
-                onClick={() =>
-                  router.push(
-                    "/stipendi"
-                  )
-                }
-              >
-                <span className="navIcon">
-                  ♙
-                </span>
+                  Stipendi
+                </button>
 
-                Stipendi
-              </button>
+                <button
+                  onClick={() =>
+                    router.push("/dipendenti")
+                  }
+                >
+                  <span className="navIcon">
+                    ♟
+                  </span>
 
+                  Dipendenti
+                </button>
+
+              </>
             )}
 
           </nav>
@@ -557,13 +481,9 @@ export default function ImportPage() {
 
         </aside>
 
-        {/* =========================
-            CONTENUTO
-        ========================= */}
+        {/* CONTENUTO */}
 
         <section className="content">
-
-          {/* HEADER */}
 
           <header>
 
@@ -582,8 +502,6 @@ export default function ImportPage() {
               </p>
 
             </div>
-
-            {/* UTENTE */}
 
             <div className="user">
 
@@ -627,9 +545,7 @@ export default function ImportPage() {
 
           </header>
 
-          {/* =========================
-              FONDO CASSA
-          ========================= */}
+          {/* FONDO CASSA */}
 
           <div className="importTopCard">
 
@@ -653,13 +569,9 @@ export default function ImportPage() {
 
           </div>
 
-          {/* =========================
-              KIT
-          ========================= */}
+          {/* KIT */}
 
           <div className="importGrid">
-
-            {/* KIT CIBO */}
 
             <div className="importKitCard">
 
@@ -724,8 +636,6 @@ export default function ImportPage() {
               </div>
 
             </div>
-
-            {/* KIT BEVANDE */}
 
             <div className="importKitCard">
 
@@ -793,9 +703,7 @@ export default function ImportPage() {
 
           </div>
 
-          {/* =========================
-              RIEPILOGO
-          ========================= */}
+          {/* RIEPILOGO */}
 
           <div className="importSummary">
 
@@ -890,9 +798,7 @@ export default function ImportPage() {
 
           )}
 
-          {/* =========================
-              STORICO IMPORT
-          ========================= */}
+          {/* STORICO IMPORT */}
 
           <div className="importHistory">
 
@@ -941,8 +847,6 @@ export default function ImportPage() {
                       }
                     >
 
-                      {/* ORDINE */}
-
                       <div className="importHistoryMain">
 
                         <div className="importOrderNumber">
@@ -965,8 +869,6 @@ export default function ImportPage() {
                         </div>
 
                       </div>
-
-                      {/* QUANTITÀ */}
 
                       <div className="importHistoryDetails">
 
@@ -996,8 +898,6 @@ export default function ImportPage() {
 
                       </div>
 
-                      {/* TOTALE */}
-
                       <div className="importHistoryTotal">
 
                         <small>
@@ -1012,8 +912,6 @@ export default function ImportPage() {
                         </strong>
 
                       </div>
-
-                      {/* ANNULLAMENTO */}
 
                       <div className="importHistoryAction">
 
