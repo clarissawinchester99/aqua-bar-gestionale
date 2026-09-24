@@ -193,6 +193,8 @@ export default function StipendiPage() {
     <main>
       <div className="overlay">
 
+        {/* SIDEBAR */}
+
         <aside className="sidebar">
 
           <div className="brand">
@@ -240,10 +242,22 @@ export default function StipendiPage() {
               Stipendi
             </button>
 
+            <button
+              onClick={() =>
+                router.push("/dipendenti")
+              }
+            >
+              <span className="navIcon">
+                ♟
+              </span>
+              Dipendenti
+            </button>
+
           </nav>
 
           <div className="sidebarBottom">
             <p>Gestionale AQUA BAR</p>
+
             <small>
               FiveM Management
             </small>
@@ -251,20 +265,26 @@ export default function StipendiPage() {
 
         </aside>
 
+        {/* CONTENUTO */}
+
         <section className="content">
 
           <header>
 
             <div>
+
               <p className="eyebrow">
                 AMMINISTRAZIONE
               </p>
 
-              <h2>Stipendi</h2>
+              <h2>
+                Stipendi
+              </h2>
 
               <p className="subtitle">
                 Gestione stipendi dei dipendenti
               </p>
+
             </div>
 
             <div className="user">
@@ -276,6 +296,7 @@ export default function StipendiPage() {
               </div>
 
               <div className="userInfo">
+
                 <strong>
                   {profile?.nome}
                 </strong>
@@ -284,6 +305,7 @@ export default function StipendiPage() {
                   <i className="onlineDot"></i>
                   Amministratore
                 </span>
+
               </div>
 
               <button
@@ -297,14 +319,18 @@ export default function StipendiPage() {
 
           </header>
 
+          {/* CARDS */}
+
           <div className="salaryCards">
 
             <div className="card">
+
               <div className="cardIcon">
                 ♙
               </div>
 
               <div>
+
                 <span>
                   DIPENDENTI
                 </span>
@@ -316,15 +342,19 @@ export default function StipendiPage() {
                 <p>
                   Dipendenti registrati
                 </p>
+
               </div>
+
             </div>
 
             <div className="card">
+
               <div className="cardIcon">
                 $
               </div>
 
               <div>
+
                 <span>
                   FATTURATO TOTALE
                 </span>
@@ -339,15 +369,19 @@ export default function StipendiPage() {
                 <p>
                   Fatture non annullate
                 </p>
+
               </div>
+
             </div>
 
             <div className="card">
+
               <div className="cardIcon">
                 %
               </div>
 
               <div>
+
                 <span>
                   STIPENDI TOTALI
                 </span>
@@ -362,10 +396,14 @@ export default function StipendiPage() {
                 <p>
                   Totale da corrispondere
                 </p>
+
               </div>
+
             </div>
 
           </div>
+
+          {/* MESSAGGI */}
 
           {message && (
             <div className="salaryMessage">
@@ -373,11 +411,14 @@ export default function StipendiPage() {
             </div>
           )}
 
+          {/* PANNELLO STIPENDI */}
+
           <div className="salaryPanel">
 
             <div className="salaryPanelHeader">
 
               <div>
+
                 <p className="welcomeLabel">
                   PERSONALE
                 </p>
@@ -390,6 +431,7 @@ export default function StipendiPage() {
                   Imposta ruolo e percentuale
                   sul fatturato.
                 </p>
+
               </div>
 
               <span>
