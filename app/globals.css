@@ -2807,3 +2807,628 @@ header h2 {
 .logoutButton:active {
   transform: translateY(0);
 }
+/* ==========================================================
+   AQUA BAR — GOLD LUXURY THEME
+   Tema grafico globale
+========================================================== */
+
+:root {
+  --aqua-gold: #e8c66d;
+  --aqua-gold-light: #f5dc8a;
+  --aqua-gold-bright: #ffe59a;
+  --aqua-gold-dark: #b88a32;
+  --aqua-gold-border: rgba(232, 198, 109, 0.38);
+  --aqua-gold-soft: rgba(232, 198, 109, 0.72);
+}
+
+
+/* ==========================================================
+   FONT AQUA BAR GLOBALE
+========================================================== */
+
+html,
+body,
+button,
+input,
+select,
+textarea {
+  font-family:
+    Georgia,
+    "Times New Roman",
+    Times,
+    serif;
+}
+
+
+/* ==========================================================
+   TESTO GENERALE
+========================================================== */
+
+body {
+  color: var(--aqua-gold);
+}
+
+
+/* Titoli */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--aqua-gold-light) !important;
+
+  font-family:
+    Georgia,
+    "Times New Roman",
+    Times,
+    serif;
+
+  text-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.75),
+    0 0 14px rgba(212, 175, 55, 0.08);
+}
+
+
+/* Testi normali */
+
+p,
+span,
+strong,
+small,
+label {
+  font-family:
+    Georgia,
+    "Times New Roman",
+    Times,
+    serif;
+}
+
+
+/* ==========================================================
+   LOGO AQUA BAR
+========================================================== */
+
+.brand h1,
+.loginLogo h1 {
+  color: var(--aqua-gold-light) !important;
+
+  font-family:
+    Georgia,
+    "Times New Roman",
+    Times,
+    serif !important;
+
+  text-shadow:
+    0 0 12px rgba(232, 198, 109, 0.20),
+    0 2px 10px rgba(0, 0, 0, 0.8);
+}
+
+
+.brand span,
+.loginLogo span {
+  color: var(--aqua-gold) !important;
+
+  font-family:
+    Georgia,
+    "Times New Roman",
+    Times,
+    serif !important;
+}
+
+
+/* ==========================================================
+   INTESTAZIONI PAGINE
+========================================================== */
+
+header h2 {
+  color: var(--aqua-gold-light) !important;
+
+  font-weight: 500;
+
+  letter-spacing: 1px;
+}
+
+
+.eyebrow,
+.welcomeLabel {
+  color: var(--aqua-gold) !important;
+
+  font-weight: 700;
+}
+
+
+.subtitle {
+  color: var(--aqua-gold-soft) !important;
+}
+
+
+/* ==========================================================
+   MENU LATERALE
+========================================================== */
+
+.sidebar nav button {
+  color: rgba(232, 198, 109, 0.76) !important;
+
+  font-family:
+    Georgia,
+    "Times New Roman",
+    Times,
+    serif !important;
+
+  letter-spacing: 0.5px;
+}
+
+
+.sidebar nav button:hover {
+  color: var(--aqua-gold-light) !important;
+}
+
+
+.sidebar nav button.active {
+  color: var(--aqua-gold-bright) !important;
+
+  border-color:
+    rgba(232, 198, 109, 0.45) !important;
+}
+
+
+.navIcon {
+  color: var(--aqua-gold) !important;
+}
+
+
+.sidebarBottom p {
+  color: var(--aqua-gold) !important;
+}
+
+
+.sidebarBottom small {
+  color:
+    rgba(232, 198, 109, 0.55) !important;
+}
+
+
+/* ==========================================================
+   PROFILO IN ALTO
+========================================================== */
+
+.userInfo strong {
+  color: var(--aqua-gold-light) !important;
+}
+
+
+.userInfo span {
+  color:
+    rgba(232, 198, 109, 0.68) !important;
+}
+
+
+.avatar {
+  color: #171108 !important;
+
+  font-family:
+    Georgia,
+    "Times New Roman",
+    Times,
+    serif !important;
+}
+
+
+/* ==========================================================
+   CARDS DASHBOARD
+========================================================== */
+
+.card span {
+  color: var(--aqua-gold) !important;
+}
+
+
+.card h3 {
+  color: var(--aqua-gold-light) !important;
+}
+
+
+.card p {
+  color:
+    rgba(232, 198, 109, 0.65) !important;
+}
+
+
+.cardIcon {
+  color: var(--aqua-gold-light) !important;
+}
+
+
+/* ==========================================================
+   TESTI SECONDARI
+========================================================== */
+
+.welcomeText,
+.employeeSectionTitle > p:last-child,
+.salaryPanelHeader p,
+.invoiceHistoryHeader > span,
+.importHistoryHeader > span {
+  color:
+    rgba(232, 198, 109, 0.62) !important;
+}
+
+
+/* ==========================================================
+   INPUT / SELECT
+========================================================== */
+
+input,
+select,
+textarea {
+  color: var(--aqua-gold-light) !important;
+
+  border-color:
+    rgba(232, 198, 109, 0.32) !important;
+}
+
+
+input::placeholder,
+textarea::placeholder {
+  color:
+    rgba(232, 198, 109, 0.38) !important;
+}
+
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color:
+    var(--aqua-gold) !important;
+
+  box-shadow:
+    0 0 0 3px rgba(232, 198, 109, 0.07),
+    0 0 18px rgba(232, 198, 109, 0.07) !important;
+}
+
+
+select option {
+  background: #0d0b09 !important;
+
+  color: var(--aqua-gold-light) !important;
+}
+
+
+/* ==========================================================
+   LABEL FORM
+========================================================== */
+
+label,
+.invoiceForm label,
+.quantityLabel,
+.employeeField label {
+  color:
+    var(--aqua-gold) !important;
+
+  font-weight: 700;
+
+  letter-spacing: 1.4px;
+}
+
+
+/* ==========================================================
+   FATTURE
+========================================================== */
+
+.invoicePanel h2,
+.invoiceHistoryHeader h2 {
+  color:
+    var(--aqua-gold-light) !important;
+}
+
+
+.cartHeader {
+  color:
+    var(--aqua-gold-light) !important;
+}
+
+
+.cartItem strong {
+  color:
+    var(--aqua-gold-light) !important;
+}
+
+
+.cartItem span {
+  color:
+    rgba(232, 198, 109, 0.60) !important;
+}
+
+
+.cartItemRight > strong,
+.cartTotal strong {
+  color:
+    var(--aqua-gold-light) !important;
+}
+
+
+.cartTotal span {
+  color:
+    var(--aqua-gold-soft) !important;
+}
+
+
+.invoiceHistoryMain strong,
+.invoiceHistoryDetails strong {
+  color:
+    var(--aqua-gold-light) !important;
+}
+
+
+.invoiceHistoryMain p,
+.invoiceHistoryDetails span,
+.invoiceHistoryTotal small {
+  color:
+    rgba(232, 198, 109, 0.58) !important;
+}
+
+
+.invoiceHistoryTotal strong {
+  color:
+    var(--aqua-gold-light) !important;
+}
+
+
+/* ==========================================================
+   IMPORT
+========================================================== */
+
+.importTopCard span {
+  color:
+    var(--aqua-gold-soft) !important;
+}
+
+
+.importTopCard h3 {
+  color:
+    var(--aqua-gold-light) !important;
+}
+
+
+.importTopCard p {
+  color:
+    rgba(232, 198, 109, 0.62) !important;
+}
+
+
+.importKitCard h2 {
+  color:
+    var(--aqua-gold-light) !important;
+}
+
+
+.importPrice {
+  color:
+    var(--aqua-gold-light) !important;
+}
+
+
+.importPrice span {
+  color:
+    rgba(232, 198, 109, 0.58) !important;
+}
+
+
+.quantityControl strong {
+  color:
+    var(--aqua-gold-light) !important;
+}
+
+
+.kitSubtotal span {
+  color:
+    rgba(232, 198, 109, 0.58) !important;
+}
+
+
+.kitSubtotal strong {
+  color:
+    var(--aqua-gold-light) !important;
+}
+
+
+.importSummaryRow {
+  color:
+    var(--aqua-gold-soft) !important;
+}
+
+
+.importSummaryRow strong {
+  color:
+    var(--aqua-gold-light) !important;
+}
+
+
+.importTotal span {
+  color:
+    var(--aqua-gold) !important;
+}
+
+
+.importTotal strong {
+  color:
+    var(--aqua-gold-light) !important;
+}
+
+
+.importHistoryMain strong,
+.importHistoryDetails strong {
+  color:
+    var(--aqua-gold-light) !important;
+}
+
+
+.importHistoryMain p,
+.importHistoryDetails span,
+.importHistoryTotal small {
+  color:
+    rgba(232, 198, 109, 0.58) !important;
+}
+
+
+.importHistoryTotal strong {
+  color:
+    var(--aqua-gold-light) !important;
+}
+
+
+/* ==========================================================
+   STIPENDI
+========================================================== */
+
+.salaryPanelHeader h2 {
+  color:
+    var(--aqua-gold-light) !important;
+}
+
+
+.salaryPanelHeader p,
+.salaryPanelHeader > span {
+  color:
+    rgba(232, 198, 109, 0.60) !important;
+}
+
+
+.salaryTableHeader {
+  color:
+    rgba(232, 198, 109, 0.60) !important;
+}
+
+
+.salaryEmployee {
+  color:
+    var(--aqua-gold-light) !important;
+}
+
+
+.salaryRevenue {
+  color:
+    var(--aqua-gold-light) !important;
+}
+
+
+.salaryAmount {
+  color:
+    var(--aqua-gold-bright) !important;
+}
+
+
+/* ==========================================================
+   DIPENDENTI
+========================================================== */
+
+.employeeSectionTitle h2,
+.employeeListHeader h2 {
+  color:
+    var(--aqua-gold-light) !important;
+}
+
+
+.employeeIdentity strong {
+  color:
+    var(--aqua-gold-light) !important;
+}
+
+
+.employeeIdentity span {
+  color:
+    rgba(232, 198, 109, 0.58) !important;
+}
+
+
+.employeeInfo small {
+  color:
+    rgba(232, 198, 109, 0.58) !important;
+}
+
+
+.employeeInfo strong {
+  color:
+    var(--aqua-gold-light) !important;
+}
+
+
+/* ==========================================================
+   PULSANTI ORO
+========================================================== */
+
+.invoicePrimaryButton,
+.salarySaveButton,
+.employeeReactivateButton,
+.logoutButton {
+  color:
+    var(--aqua-gold-light) !important;
+
+  font-family:
+    Georgia,
+    "Times New Roman",
+    Times,
+    serif !important;
+}
+
+
+/* Pulsanti pieni oro:
+   testo scuro per mantenere leggibilità */
+
+.loginButton,
+.invoiceConfirmButton,
+.importConfirmButton,
+.employeeHireButton {
+  color: #171108 !important;
+
+  font-family:
+    Georgia,
+    "Times New Roman",
+    Times,
+    serif !important;
+
+  font-weight: 800;
+}
+
+
+/* ==========================================================
+   PULSANTI ROSSI
+   Rimangono rossi per indicare azioni pericolose
+========================================================== */
+
+.employeeFireButton,
+.cancelInvoiceButton,
+.cancelImportButton {
+  font-family:
+    Georgia,
+    "Times New Roman",
+    Times,
+    serif !important;
+}
+
+
+/* ==========================================================
+   EMPTY STATE
+========================================================== */
+
+.emptyCart {
+  color:
+    rgba(232, 198, 109, 0.55) !important;
+}
+
+
+/* ==========================================================
+   EFFETTO ORO LEGGERO SUI TITOLI IMPORTANTI
+========================================================== */
+
+header h2,
+.employeeListHeader h2,
+.employeeSectionTitle h2,
+.salaryPanelHeader h2,
+.invoiceHistoryHeader h2,
+.importHistoryHeader h2 {
+  text-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.75),
+    0 0 15px rgba(232, 198, 109, 0.10);
+}
