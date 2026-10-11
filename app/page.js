@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabase";
+import Sidebar from "../components/Sidebar";
 
 export default function Home() {
   const router = useRouter();
@@ -80,6 +81,7 @@ export default function Home() {
 
       setProfile(profileResult.data);
 
+      // FONDO CASSA
       if (accountResult.error) {
         console.error(
           "Errore fondo cassa:",
@@ -89,6 +91,7 @@ export default function Home() {
         setSaldo(Number(accountResult.data?.saldo) || 0);
       }
 
+      // FATTURATO PERSONALE
       if (invoiceResult.error) {
         console.error(
           "Errore fatturato:",
@@ -104,32 +107,39 @@ export default function Home() {
         setFatturato(totale);
       }
 
+      // TOTALE IMPORT
       if (importResult.error) {
         console.error(
           "Errore totale import:",
           importResult.error
         );
+
         setTotaleImport(0);
       } else {
         setTotaleImport(Number(importResult.data) || 0);
       }
 
+      // STIPENDIO PERSONALE
       if (stipendioResult.error) {
         console.error(
           "Errore stipendio:",
           stipendioResult.error
         );
+
         setStipendioError(true);
       } else {
         const mio = (stipendioResult.data || [])[0];
+
         setMioStipendio(Number(mio?.stipendio) || 0);
       }
 
+      // STIPENDI IN ATTESA DI PAGAMENTO
       if (pagamentiResult.error) {
         console.error(
           "Errore pagamenti:",
           pagamentiResult.error
         );
+
         setStipendioError(true);
       } else {
         const mieiPagamenti = (
@@ -152,11 +162,13 @@ export default function Home() {
     }
   }
 
+  // LOGOUT
   async function logout() {
     await supabase.auth.signOut();
     router.replace("/login");
   }
 
+  // FORMATTAZIONE IMPORTI
   function formatMoney(value) {
     return Number(value || 0).toLocaleString("it-IT", {
       minimumFractionDigits: 0,
@@ -164,6 +176,7 @@ export default function Home() {
     });
   }
 
+  // SCHERMATA DI CARICAMENTO
   if (loading) {
     return (
       <main className="loadingPage">
@@ -175,119 +188,20 @@ export default function Home() {
   return (
     <main>
       <div className="overlay">
-        {/* MENU LATERALE */}
 
-        <aside className="sidebar">
-          <div className="brand">
-            <h1>AQUA</h1>
-            <span>BAR</span>
-          </div>
-
-          <nav>
-            {/* MENU GENERALE */}
-
-            <button className="active">
-              <span className="navIcon">⌂</span>
-              Dashboard
-            </button>
-
-            <button
-              onClick={() => router.push("/fatture")}
-            >
-              <span className="navIcon">▤</span>
-              Fatture
-            </button>
-
-            <button
-              onClick={() => router.push("/import")}
-            >
-              <span className="navIcon">◇</span>
-              Import
-            </button>
-
-            <button
-              onClick={() => router.push("/mio-stipendio")}
-            >
-              <span className="navIcon">♙</span>
-              Il mio stipendio
-            </button>
-
-            {/* AREA RISERVATA ADMIN */}
-
-            {profile?.ruolo === "admin" && (
-              <>
-                <div
-                  style={{
-                    marginTop: "26px",
-                    marginBottom: "12px",
-                    padding: "16px 12px 8px",
-                    borderTop:
-                      "1px solid rgba(212,175,55,0.3)",
-                  }}
-                >
-                  <span
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      color: "#d4af37",
-                      fontSize: "11px",
-                      fontWeight: "bold",
-                      letterSpacing: "2px",
-                    }}
-                  >
-                    ♛ AREA AMMINISTRATORE
-                  </span>
-                </div>
-
-                <button
-                  onClick={() => router.push("/dipendenti")}
-                >
-                  <span className="navIcon">♟</span>
-                  Gestione Dipendenti
-                </button>
-
-                <button
-                  onClick={() =>
-                    router.push("/admin/catalogo")
-                  }
-                >
-                  <span className="navIcon">▦</span>
-                  Gestione Catalogo
-                </button>
-
-                <button
-                  onClick={() =>
-                    router.push("/admin/import")
-                  }
-                >
-                  <span className="navIcon">▱</span>
-                  Gestione Import
-                </button>
-
-                <button
-                  onClick={() => router.push("/stipendi")}
-                >
-                  <span className="navIcon">♙</span>
-                  Gestione Stipendi
-                </button>
-              </>
-            )}
-          </nav>
-
-          <div className="sidebarBottom">
-            <p>Gestionale AQUA BAR</p>
-            <small>FiveM Management</small>
-          </div>
-        </aside>
+        {/* SIDEBAR UNIFICATA */}
+        <Sidebar profile={profile} />
 
         {/* CONTENUTO DASHBOARD */}
-
         <section className="content">
+
+          {/* INTESTAZIONE */}
           <header>
             <div>
               <p className="eyebrow">AQUA BAR</p>
+
               <h2>Dashboard</h2>
+
               <p className="subtitle">
                 Benvenuto nel gestionale del locale
               </p>
@@ -307,6 +221,7 @@ export default function Home() {
 
                 <span>
                   <i className="onlineDot"></i>
+
                   {profile?.ruolo === "admin"
                     ? "Amministratore"
                     : "Dipendente"}
@@ -314,6 +229,7 @@ export default function Home() {
               </div>
 
               <button
+                type="button"
                 className="logoutButton"
                 onClick={logout}
               >
@@ -322,40 +238,58 @@ export default function Home() {
             </div>
           </header>
 
-          {/* CARDS ORIGINALI */}
-
+          {/* CARDS DASHBOARD */}
           <div className="cards">
+
+            {/* FONDO CASSA */}
             <div className="card">
               <div className="cardIcon">◎</div>
+
               <div>
                 <span>FONDO CASSA</span>
-                <h3>${formatMoney(saldo)}</h3>
+
+                <h3>
+                  ${formatMoney(saldo)}
+                </h3>
+
                 <p>Conto aziendale AQUA BAR</p>
               </div>
             </div>
 
+            {/* FATTURATO PERSONALE */}
             <div className="card">
               <div className="cardIcon">♙</div>
+
               <div>
                 <span>FATTURATO PERSONALE</span>
-                <h3>${formatMoney(fatturato)}</h3>
+
+                <h3>
+                  ${formatMoney(fatturato)}
+                </h3>
+
                 <p>Il tuo fatturato totale</p>
               </div>
             </div>
 
+            {/* TOTALE IMPORT */}
             <div className="card">
               <div className="cardIcon">▱</div>
+
               <div>
                 <span>TOTALE IMPORT</span>
-                <h3>${formatMoney(totaleImport)}</h3>
+
+                <h3>
+                  ${formatMoney(totaleImport)}
+                </h3>
+
                 <p>Import attivi non annullati</p>
               </div>
             </div>
 
             {/* STIPENDIO PERSONALE */}
-
             <div className="card">
               <div className="cardIcon">♙</div>
+
               <div>
                 <span>IL MIO STIPENDIO</span>
 
@@ -386,7 +320,9 @@ export default function Home() {
                   onClick={() =>
                     router.push("/mio-stipendio")
                   }
-                  style={{ marginTop: "12px" }}
+                  style={{
+                    marginTop: "12px",
+                  }}
                 >
                   Vedi il mio stipendio
                 </button>
@@ -395,7 +331,6 @@ export default function Home() {
           </div>
 
           {/* BENVENUTO */}
-
           <div className="welcome">
             <span className="goldLine"></span>
 
@@ -410,6 +345,7 @@ export default function Home() {
               forniture e personale del locale.
             </p>
           </div>
+
         </section>
       </div>
     </main>
