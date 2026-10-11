@@ -1,8 +1,10 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
+import Sidebar from "../../../components/Sidebar";
 
 export default function GestioneImportPage() {
   const router = useRouter();
@@ -24,6 +26,10 @@ export default function GestioneImportPage() {
   useEffect(() => {
     loadPage();
   }, []);
+
+  // ============================================
+  // CARICAMENTO PAGINA
+  // ============================================
 
   async function loadPage() {
     try {
@@ -63,6 +69,10 @@ export default function GestioneImportPage() {
     }
   }
 
+  // ============================================
+  // CARICAMENTO PRODOTTI IMPORT
+  // ============================================
+
   async function loadProducts() {
     const { data, error } = await supabase
       .from("import_products")
@@ -74,6 +84,10 @@ export default function GestioneImportPage() {
     setProducts(data || []);
   }
 
+  // ============================================
+  // FORMATTAZIONE PREZZI
+  // ============================================
+
   function formatMoney(value) {
     return Number(value || 0).toLocaleString("it-IT", {
       maximumFractionDigits: 2,
@@ -81,7 +95,9 @@ export default function GestioneImportPage() {
   }
 
   function parsePrice(value) {
-    const text = String(value).trim().replace(",", ".");
+    const text = String(value)
+      .trim()
+      .replace(",", ".");
 
     if (!text) return null;
 
@@ -98,6 +114,10 @@ export default function GestioneImportPage() {
     setMessage(text);
     setSuccess(isSuccess);
   }
+
+  // ============================================
+  // AGGIUNGI PRODOTTO IMPORT
+  // ============================================
 
   async function addProduct(event) {
     event.preventDefault();
@@ -142,6 +162,7 @@ export default function GestioneImportPage() {
       );
     } catch (error) {
       console.error("Errore aggiunta:", error);
+
       showMessage(
         `Impossibile aggiungere il prodotto: ${error.message}`
       );
@@ -149,6 +170,10 @@ export default function GestioneImportPage() {
       setSaving(false);
     }
   }
+
+  // ============================================
+  // MODIFICA PRODOTTO
+  // ============================================
 
   function startEdit(product) {
     setEditingId(product.id);
@@ -199,6 +224,7 @@ export default function GestioneImportPage() {
       );
     } catch (error) {
       console.error("Errore modifica:", error);
+
       showMessage(
         `Impossibile modificare il prodotto: ${error.message}`
       );
@@ -206,6 +232,10 @@ export default function GestioneImportPage() {
       setSaving(false);
     }
   }
+
+  // ============================================
+  // ATTIVA / DISATTIVA PRODOTTO
+  // ============================================
 
   async function toggleProduct(product) {
     if (saving) return;
@@ -241,6 +271,7 @@ export default function GestioneImportPage() {
       );
     } catch (error) {
       console.error("Errore aggiornamento:", error);
+
       showMessage(
         `Impossibile aggiornare il prodotto: ${error.message}`
       );
@@ -249,78 +280,56 @@ export default function GestioneImportPage() {
     }
   }
 
+  // ============================================
+  // LOGOUT
+  // ============================================
+
   async function logout() {
     await supabase.auth.signOut();
     router.replace("/login");
   }
 
+  // ============================================
+  // CARICAMENTO
+  // ============================================
+
   if (loading) {
     return (
       <main className="loadingPage">
-        <div className="loadingText">AQUA BAR</div>
+        <div className="loadingText">
+          AQUA BAR
+        </div>
       </main>
     );
   }
 
   if (!profile) return null;
 
+  // ============================================
+  // PAGINA GESTIONE IMPORT
+  // ============================================
+
   return (
     <main>
       <div className="overlay">
-        <aside className="sidebar">
-          <div className="brand">
-            <h1>AQUA</h1>
-            <span>BAR</span>
-          </div>
 
-          <nav>
-            <button onClick={() => router.push("/")}>
-              <span className="navIcon">⌂</span>
-              Dashboard
-            </button>
+        {/* SIDEBAR UNIFICATA */}
+        <Sidebar profile={profile} />
 
-            <button onClick={() => router.push("/fatture")}>
-              <span className="navIcon">▤</span>
-              Fatture
-            </button>
-
-            <button onClick={() => router.push("/import")}>
-              <span className="navIcon">◇</span>
-              Import
-            </button>
-
-            <button onClick={() => router.push("/stipendi")}>
-              <span className="navIcon">♙</span>
-              Stipendi
-            </button>
-
-            <button onClick={() => router.push("/dipendenti")}>
-              <span className="navIcon">♟</span>
-              Dipendenti
-            </button>
-
-            <button onClick={() => router.push("/admin/catalogo")}>
-              <span className="navIcon">▦</span>
-              Gestione Catalogo
-            </button>
-
-            <button className="active">
-              <span className="navIcon">◇</span>
-              Gestione Import
-            </button>
-          </nav>
-
-          <div className="sidebarBottom">
-            <p>Gestionale AQUA BAR</p>
-            <small>FiveM Management</small>
-          </div>
-        </aside>
-
+        {/* CONTENUTO */}
         <section className="content">
+
+          {/* HEADER */}
           <header>
             <div>
-              <p className="eyebrow">AQUA BAR</p>
-              <h2>Gestione Import</h2>
+              <p className="eyebrow">
+                AQUA BAR
+              </p>
+
+              <h2>
+                Gestione Import
+              </h2>
+
               <p className="subtitle">
                 Gestisci prodotti e prezzi delle forniture
               </p>
@@ -328,11 +337,16 @@ export default function GestioneImportPage() {
 
             <div className="user">
               <div className="avatar">
-                {profile.nome?.charAt(0).toUpperCase() || "A"}
+                {profile.nome
+                  ?.charAt(0)
+                  .toUpperCase() || "A"}
               </div>
 
               <div className="userInfo">
-                <strong>{profile.nome || "Admin"}</strong>
+                <strong>
+                  {profile.nome || "Admin"}
+                </strong>
+
                 <span>
                   <i className="onlineDot"></i>
                   Amministratore
@@ -340,6 +354,7 @@ export default function GestioneImportPage() {
               </div>
 
               <button
+                type="button"
                 className="logoutButton"
                 onClick={logout}
               >
@@ -348,28 +363,51 @@ export default function GestioneImportPage() {
             </div>
           </header>
 
-          <div className="invoicePanel">
-            <p className="welcomeLabel">FORNITURE</p>
-            <h2>Aggiungi prodotto import</h2>
+          {/* ==================================
+              AGGIUNGI PRODOTTO IMPORT
+          ================================== */}
 
-            <form className="invoiceForm" onSubmit={addProduct}>
-              <label>Nome prodotto</label>
+          <div className="invoicePanel">
+
+            <p className="welcomeLabel">
+              FORNITURE
+            </p>
+
+            <h2>
+              Aggiungi prodotto import
+            </h2>
+
+            <form
+              className="invoiceForm"
+              onSubmit={addProduct}
+            >
+              <label>
+                Nome prodotto
+              </label>
+
               <input
                 type="text"
                 placeholder="Es. Ghiaccio"
                 value={newName}
-                onChange={(e) => setNewName(e.target.value)}
+                onChange={(e) =>
+                  setNewName(e.target.value)
+                }
                 required
               />
 
-              <label>Prezzo d'acquisto ($)</label>
+              <label>
+                Prezzo d'acquisto ($)
+              </label>
+
               <input
                 type="number"
                 min="0"
                 step="0.01"
                 placeholder="Es. 100"
                 value={newPrice}
-                onChange={(e) => setNewPrice(e.target.value)}
+                onChange={(e) =>
+                  setNewPrice(e.target.value)
+                }
                 required
               />
 
@@ -385,6 +423,7 @@ export default function GestioneImportPage() {
             </form>
           </div>
 
+          {/* MESSAGGI */}
           {message && (
             <div
               className={
@@ -392,25 +431,38 @@ export default function GestioneImportPage() {
                   ? "invoiceMessage success"
                   : "invoiceMessage"
               }
-              style={{ marginTop: "20px" }}
+              style={{
+                marginTop: "20px",
+              }}
             >
               {message}
             </div>
           )}
 
+          {/* ==================================
+              CATALOGO IMPORT
+          ================================== */}
+
           <div
             className="invoiceHistory"
-            style={{ marginTop: "25px" }}
+            style={{
+              marginTop: "25px",
+            }}
           >
             <div className="invoiceHistoryHeader">
               <div>
                 <p className="welcomeLabel">
                   AMMINISTRAZIONE
                 </p>
-                <h2>Catalogo Import</h2>
+
+                <h2>
+                  Catalogo Import
+                </h2>
               </div>
 
-              <span>{products.length} prodotti</span>
+              <span>
+                {products.length} prodotti
+              </span>
             </div>
 
             {products.length === 0 ? (
@@ -419,18 +471,23 @@ export default function GestioneImportPage() {
               </p>
             ) : (
               <div className="invoiceHistoryList">
+
                 {products.map((product) => (
                   <div
                     className="invoiceHistoryItem"
                     key={product.id}
                     style={{
-                      opacity: product.attivo ? 1 : 0.65,
+                      opacity: product.attivo
+                        ? 1
+                        : 0.65,
                       gap: "15px",
                       flexWrap: "wrap",
                     }}
                   >
+
                     {editingId === product.id ? (
                       <>
+                        {/* MODIFICA PRODOTTO */}
                         <div
                           className="invoiceForm"
                           style={{
@@ -438,23 +495,33 @@ export default function GestioneImportPage() {
                             minWidth: 0,
                           }}
                         >
-                          <label>Nome prodotto</label>
+                          <label>
+                            Nome prodotto
+                          </label>
+
                           <input
                             type="text"
                             value={editName}
                             onChange={(e) =>
-                              setEditName(e.target.value)
+                              setEditName(
+                                e.target.value
+                              )
                             }
                           />
 
-                          <label>Prezzo ($)</label>
+                          <label>
+                            Prezzo ($)
+                          </label>
+
                           <input
                             type="number"
                             min="0"
                             step="0.01"
                             value={editPrice}
                             onChange={(e) =>
-                              setEditPrice(e.target.value)
+                              setEditPrice(
+                                e.target.value
+                              )
                             }
                           />
                         </div>
@@ -467,14 +534,18 @@ export default function GestioneImportPage() {
                           }}
                         >
                           <button
+                            type="button"
                             className="invoicePrimaryButton"
                             disabled={saving}
-                            onClick={() => saveEdit(product)}
+                            onClick={() =>
+                              saveEdit(product)
+                            }
                           >
                             SALVA
                           </button>
 
                           <button
+                            type="button"
                             className="cancelInvoiceButton"
                             disabled={saving}
                             onClick={cancelEdit}
@@ -485,12 +556,18 @@ export default function GestioneImportPage() {
                       </>
                     ) : (
                       <>
+                        {/* INFORMAZIONI PRODOTTO */}
                         <div
                           className="invoiceHistoryMain"
-                          style={{ flex: "1 1 220px" }}
+                          style={{
+                            flex: "1 1 220px",
+                          }}
                         >
                           <div>
-                            <strong>{product.nome}</strong>
+                            <strong>
+                              {product.nome}
+                            </strong>
+
                             <p>
                               {product.attivo
                                 ? "Prodotto attivo"
@@ -499,13 +576,20 @@ export default function GestioneImportPage() {
                           </div>
                         </div>
 
+                        {/* PREZZO ACQUISTO */}
                         <div className="invoiceHistoryTotal">
-                          <small>PREZZO ACQUISTO</small>
+                          <small>
+                            PREZZO ACQUISTO
+                          </small>
+
                           <strong>
-                            ${formatMoney(product.prezzo)}
+                            ${formatMoney(
+                              product.prezzo
+                            )}
                           </strong>
                         </div>
 
+                        {/* AZIONI */}
                         <div
                           style={{
                             display: "flex",
@@ -514,17 +598,23 @@ export default function GestioneImportPage() {
                           }}
                         >
                           <button
+                            type="button"
                             className="invoicePrimaryButton"
                             disabled={saving}
-                            onClick={() => startEdit(product)}
+                            onClick={() =>
+                              startEdit(product)
+                            }
                           >
                             MODIFICA
                           </button>
 
                           <button
+                            type="button"
                             className="cancelInvoiceButton"
                             disabled={saving}
-                            onClick={() => toggleProduct(product)}
+                            onClick={() =>
+                              toggleProduct(product)
+                            }
                           >
                             {product.attivo
                               ? "DISATTIVA"
@@ -538,6 +628,7 @@ export default function GestioneImportPage() {
               </div>
             )}
           </div>
+
         </section>
       </div>
     </main>
