@@ -16,6 +16,10 @@ export default function StipendiPage() {
   const [saving, setSaving] = useState(null);
   const [message, setMessage] = useState("");
 
+  // ==========================================
+  // FORMATTAZIONE
+  // ==========================================
+
   const money = (value) =>
     Number(value || 0).toLocaleString("it-IT", {
       minimumFractionDigits: 0,
@@ -24,30 +28,15 @@ export default function StipendiPage() {
 
   const dateIT = (value) => {
     if (!value) return "-";
-    const [y, m, d] = value.split("-");
-    return `${d}/${m}/${y}`;
+
+    const [year, month, day] = value.split("-");
+
+    return `${day}/${month}/${year}`;
   };
 
-  const oggiItalia = () =>
-    new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Europe/Rome",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(new Date());
-
-  const isSabato = () => {
-    const giorno = new Intl.DateTimeFormat("en-US", {
-      weekday: "short",
-      timeZone: "Europe/Rome",
-    }).format(new Date());
-
-    return giorno === "Sat";
-  };
-
-  // ============================================
+  // ==========================================
   // CARICAMENTO STIPENDI
-  // ============================================
+  // ==========================================
 
   async function loadStipendi() {
     const [salaryResult, paymentsResult] =
@@ -68,9 +57,9 @@ export default function StipendiPage() {
     setPagamenti(paymentsResult.data || []);
   }
 
-  // ============================================
-  // CONTROLLO ACCESSO AMMINISTRATORE
-  // ============================================
+  // ==========================================
+  // AUTENTICAZIONE ADMIN
+  // ==========================================
 
   useEffect(() => {
     async function loadPage() {
@@ -90,23 +79,46 @@ export default function StipendiPage() {
           error: profileError,
         } = await supabase
           .from("profiles")
-          .select("nome, ruolo")
+          .select("nome, ruolo, attivo")
           .eq("id", user.id)
           .single();
 
         if (
           profileError ||
           !profilo ||
-          profilo.ruolo !== "admin"
+          profilo.ruolo !== "admin" ||
+          profilo.attivo !== true
         ) {
           router.replace("/");
           return;
         }
 
         setProfile(profilo);
+
+        // Recupera eventuali settimane concluse
+        // non ancora registrate.
+        const { error: archiveError } =
+          await supabase.rpc(
+            "registra_stipendi_arretrati"
+          );
+
+        if (archiveError) {
+          console.error(
+            "Errore archiviazione stipendi:",
+            archiveError
+          );
+
+          setMessage(
+            "Attenzione: non è stato possibile " +
+            "aggiornare gli stipendi arretrati. " +
+            archiveError.message
+          );
+        }
+
         await loadStipendi();
       } catch (error) {
         console.error(error);
+
         setMessage(
           `Errore caricamento: ${error.message}`
         );
@@ -118,65 +130,33 @@ export default function StipendiPage() {
     loadPage();
   }, [router]);
 
-  // ============================================
-  // PAGAMENTO DEL SABATO
-  // ============================================
+  // ==========================================
+  // PAGAMENTO STIPENDIO
+  // ==========================================
 
-  async function pagaSabato(dipendente) {
-    if (saving !== null || !isSabato()) return;
-
-    const conferma = window.confirm(
-      `Confermi il pagamento dello stipendio ` +
-      `della settimana conclusa a ${dipendente.nome}?`
-    );
-
-    if (!conferma) return;
-
-    setSaving(`sabato-${dipendente.employee_id}`);
-    setMessage("");
-
-    try {
-      const { error } = await supabase.rpc(
-        "paga_stipendio_sabato",
-        {
-          p_employee_id: dipendente.employee_id,
-        }
-      );
-
-      if (error) throw error;
-
-      await loadStipendi();
-
-      setMessage(
-        `Stipendio di ${dipendente.nome} segnato come PAGATO.`
-      );
-    } catch (error) {
-      setMessage(`Errore: ${error.message}`);
-    } finally {
-      setSaving(null);
-    }
-  }
-
-  // ============================================
-  // PAGAMENTO ARRETRATI
-  // ============================================
-
-  async function pagaArretrato(pagamento) {
+  async function pagaStipendio(pagamento) {
     if (saving !== null) return;
 
     const dipendente = stipendi.find(
       (s) => s.employee_id === pagamento.employee_id
     );
 
+    const nome =
+      dipendente?.nome || "questo dipendente";
+
     const conferma = window.confirm(
-      `Confermi il pagamento di $${money(pagamento.amount)} ` +
-      `a ${dipendente?.nome || "questo dipendente"}?\n` +
-      `Scadenza: ${dateIT(pagamento.due_date)}`
+      `CONFERMA PAGAMENTO STIPENDIO\n\n` +
+      `Dipendente: ${nome}\n` +
+      `Periodo: ${dateIT(pagamento.period_start)} ` +
+      `- ${dateIT(pagamento.period_end)}\n` +
+      `Importo: $${money(pagamento.amount)}\n\n` +
+      `L'importo verrà sottratto dal Fondo Cassa.\n\n` +
+      `Vuoi procedere?`
     );
 
     if (!conferma) return;
 
-    setSaving(`arretrato-${pagamento.id}`);
+    setSaving(`paga-${pagamento.id}`);
     setMessage("");
 
     try {
@@ -191,26 +171,123 @@ export default function StipendiPage() {
 
       await loadStipendi();
 
-      setMessage("Stipendio segnato come PAGATO.");
+      setMessage(
+        `Pagamento di $${money(pagamento.amount)} ` +
+        `a ${nome} completato. ` +
+        `Importo sottratto dal Fondo Cassa.`
+      );
     } catch (error) {
-      setMessage(`Errore: ${error.message}`);
+      setMessage(
+        `Errore pagamento: ${error.message}`
+      );
     } finally {
       setSaving(null);
     }
   }
 
-  // ============================================
+  // ==========================================
+  // ANNULLAMENTO PAGAMENTO
+  // ==========================================
+
+  async function annullaPagamento(pagamento) {
+    if (saving !== null) return;
+
+    const dipendente = stipendi.find(
+      (s) => s.employee_id === pagamento.employee_id
+    );
+
+    const nome =
+      dipendente?.nome || "questo dipendente";
+
+    const conferma = window.confirm(
+      `ANNULLA PAGAMENTO STIPENDIO\n\n` +
+      `Dipendente: ${nome}\n` +
+      `Periodo: ${dateIT(pagamento.period_start)} ` +
+      `- ${dateIT(pagamento.period_end)}\n` +
+      `Importo: $${money(pagamento.amount)}\n\n` +
+      `ATTENZIONE!\n\n` +
+      `Il pagamento verrà annullato.\n` +
+      `$${money(pagamento.amount)} ` +
+      `saranno restituiti al Fondo Cassa.\n\n` +
+      `Lo stipendio tornerà tra quelli da pagare.\n\n` +
+      `Confermi l'annullamento?`
+    );
+
+    if (!conferma) return;
+
+    setSaving(`annulla-${pagamento.id}`);
+    setMessage("");
+
+    try {
+      const { error } = await supabase.rpc(
+        "annulla_pagamento_stipendio",
+        {
+          p_payment_id: pagamento.id,
+        }
+      );
+
+      if (error) throw error;
+
+      await loadStipendi();
+
+      setMessage(
+        `Pagamento di ${nome} annullato. ` +
+        `$${money(pagamento.amount)} ` +
+        `restituiti al Fondo Cassa. ` +
+        `Lo stipendio è nuovamente da pagare.`
+      );
+    } catch (error) {
+      setMessage(
+        `Errore annullamento: ${error.message}`
+      );
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  // ==========================================
+  // AGGIORNAMENTO MANUALE
+  // ==========================================
+
+  async function aggiornaStipendi() {
+    if (saving !== null) return;
+
+    setSaving("aggiorna");
+    setMessage("");
+
+    try {
+      const { error } = await supabase.rpc(
+        "registra_stipendi_arretrati"
+      );
+
+      if (error) throw error;
+
+      await loadStipendi();
+
+      setMessage(
+        "Stipendi aggiornati correttamente."
+      );
+    } catch (error) {
+      setMessage(
+        `Errore aggiornamento: ${error.message}`
+      );
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  // ==========================================
   // LOGOUT
-  // ============================================
+  // ==========================================
 
   async function logout() {
     await supabase.auth.signOut();
     router.replace("/login");
   }
 
-  // ============================================
-  // CALCOLI RIEPILOGO
-  // ============================================
+  // ==========================================
+  // CALCOLI
+  // ==========================================
 
   const totaleFatturato = stipendi.reduce(
     (sum, s) => sum + Number(s.fatturato || 0),
@@ -235,12 +312,20 @@ export default function StipendiPage() {
     0
   );
 
-  const sabato = isSabato();
-  const oggi = oggiItalia();
+  const totalePagati = pagati.reduce(
+    (sum, p) => sum + Number(p.amount || 0),
+    0
+  );
 
-  // ============================================
+  function trovaDipendente(employeeId) {
+    return stipendi.find(
+      (s) => s.employee_id === employeeId
+    );
+  }
+
+  // ==========================================
   // CARICAMENTO
-  // ============================================
+  // ==========================================
 
   if (loading) {
     return (
@@ -252,31 +337,31 @@ export default function StipendiPage() {
     );
   }
 
-  // ============================================
-  // PAGINA GESTIONE STIPENDI
-  // ============================================
+  // ==========================================
+  // INTERFACCIA
+  // ==========================================
 
   return (
     <main>
       <div className="overlay">
 
-        {/* SIDEBAR UNIFICATA */}
         <Sidebar profile={profile} />
 
-        {/* CONTENUTO */}
         <section className="content">
 
           {/* HEADER */}
+
           <header>
             <div>
               <p className="eyebrow">
                 AMMINISTRAZIONE
               </p>
 
-              <h2>Stipendi</h2>
+              <h2>Gestione Stipendi</h2>
 
               <p className="subtitle">
-                Gestione settimanale — Sabato / Sabato
+                Stipendi settimanali e pagamenti
+                dal Fondo Cassa
               </p>
             </div>
 
@@ -288,7 +373,9 @@ export default function StipendiPage() {
               </div>
 
               <div className="userInfo">
-                <strong>{profile?.nome}</strong>
+                <strong>
+                  {profile?.nome}
+                </strong>
 
                 <span>
                   <i className="onlineDot"></i>
@@ -306,48 +393,82 @@ export default function StipendiPage() {
             </div>
           </header>
 
-          {/* ==================================
-              RIEPILOGO STIPENDI
-          ================================== */}
+          {/* RIEPILOGO */}
 
           <div className="salaryCards">
 
             <div className="card">
-              <div className="cardIcon">♙</div>
+              <div className="cardIcon">
+                ♙
+              </div>
 
               <div>
                 <span>DIPENDENTI</span>
-                <h3>{stipendi.length}</h3>
-                <p>Dipendenti registrati</p>
+
+                <h3>
+                  {stipendi.length}
+                </h3>
+
+                <p>
+                  Dipendenti registrati
+                </p>
               </div>
             </div>
 
             <div className="card">
-              <div className="cardIcon">$</div>
+              <div className="cardIcon">
+                $
+              </div>
 
               <div>
-                <span>FATTURATO SETTIMANALE</span>
-                <h3>${money(totaleFatturato)}</h3>
-                <p>Fatture non annullate</p>
+                <span>
+                  FATTURATO SETTIMANALE
+                </span>
+
+                <h3>
+                  ${money(totaleFatturato)}
+                </h3>
+
+                <p>
+                  Settimana corrente
+                </p>
               </div>
             </div>
 
             <div className="card">
-              <div className="cardIcon">%</div>
+              <div className="cardIcon">
+                %
+              </div>
 
               <div>
-                <span>STIPENDI SETTIMANALI</span>
-                <h3>${money(totaleStipendi)}</h3>
-                <p>Settimana corrente</p>
+                <span>
+                  STIPENDI SETTIMANALI
+                </span>
+
+                <h3>
+                  ${money(totaleStipendi)}
+                </h3>
+
+                <p>
+                  In maturazione
+                </p>
               </div>
             </div>
 
             <div className="card">
-              <div className="cardIcon">!</div>
+              <div className="cardIcon">
+                !
+              </div>
 
               <div>
-                <span>STIPENDI DA PAGARE</span>
-                <h3>${money(totaleArretrati)}</h3>
+                <span>
+                  STIPENDI DA PAGARE
+                </span>
+
+                <h3>
+                  ${money(totaleArretrati)}
+                </h3>
+
                 <p>
                   {arretrati.length} pagamenti in sospeso
                 </p>
@@ -357,15 +478,14 @@ export default function StipendiPage() {
           </div>
 
           {/* MESSAGGI */}
+
           {message && (
             <div className="salaryMessage">
               {message}
             </div>
           )}
 
-          {/* ==================================
-              STIPENDI SETTIMANA CORRENTE
-          ================================== */}
+          {/* SETTIMANA CORRENTE */}
 
           <div className="salaryPanel">
 
@@ -380,8 +500,10 @@ export default function StipendiPage() {
                 </h2>
 
                 <p>
-                  Lo stipendio si accumula dalle fatture
-                  e riparte da zero ogni sabato.
+                  Gli stipendi si accumulano
+                  durante la settimana.
+                  Alla chiusura vengono conservati
+                  tra quelli da pagare.
                 </p>
               </div>
 
@@ -406,98 +528,59 @@ export default function StipendiPage() {
                   Nessun dipendente registrato.
                 </div>
               ) : (
-                stipendi.map((dipendente) => {
+                stipendi.map((dipendente) => (
+                  <div
+                    className="salaryRow"
+                    key={dipendente.employee_id}
+                  >
 
-                  const pagatoSabato =
-                    sabato &&
-                    pagamenti.some(
-                      (p) =>
-                        p.employee_id ===
-                          dipendente.employee_id &&
-                        p.due_date === oggi &&
-                        p.status === "pagato"
-                    );
-
-                  return (
-                    <div
-                      className="salaryRow"
-                      key={dipendente.employee_id}
-                    >
-
-                      {/* DIPENDENTE */}
-                      <div className="salaryEmployee">
-                        <div className="salaryAvatar">
-                          {dipendente.nome
-                            ?.charAt(0)
-                            .toUpperCase() || "D"}
-                        </div>
-
-                        <strong>
-                          {dipendente.nome}
-                        </strong>
+                    <div className="salaryEmployee">
+                      <div className="salaryAvatar">
+                        {dipendente.nome
+                          ?.charAt(0)
+                          .toUpperCase() || "D"}
                       </div>
 
-                      {/* RUOLO */}
-                      <div className="salaryRoleDisplay">
-                        <span>
-                          {dipendente.ruolo_lavorativo ||
-                            "Dipendente"}
-                        </span>
-                      </div>
-
-                      {/* PERCENTUALE */}
-                      <div className="salaryPercentageDisplay">
-                        <strong>
-                          {money(
-                            dipendente.percentuale
-                          )}%
-                        </strong>
-                      </div>
-
-                      {/* FATTURATO */}
-                      <strong className="salaryRevenue">
-                        ${money(dipendente.fatturato)}
+                      <strong>
+                        {dipendente.nome}
                       </strong>
-
-                      {/* STIPENDIO */}
-                      <strong className="salaryAmount">
-                        ${money(dipendente.stipendio)}
-                      </strong>
-
-                      {/* AZIONE */}
-                      <div className="salaryAutoBadge">
-                        {pagatoSabato ? (
-                          "PAGATO"
-                        ) : sabato ? (
-                          <button
-                            type="button"
-                            className="cancelImportButton"
-                            disabled={saving !== null}
-                            onClick={() =>
-                              pagaSabato(dipendente)
-                            }
-                          >
-                            {saving ===
-                            `sabato-${dipendente.employee_id}`
-                              ? "ATTENDI..."
-                              : "STIPENDIO PAGATO"}
-                          </button>
-                        ) : (
-                          "AUTO"
-                        )}
-                      </div>
-
                     </div>
-                  );
-                })
+
+                    <div className="salaryRoleDisplay">
+                      <span>
+                        {dipendente.ruolo_lavorativo ||
+                          "Dipendente"}
+                      </span>
+                    </div>
+
+                    <div className="salaryPercentageDisplay">
+                      <strong>
+                        {money(
+                          dipendente.percentuale
+                        )}%
+                      </strong>
+                    </div>
+
+                    <strong className="salaryRevenue">
+                      ${money(dipendente.fatturato)}
+                    </strong>
+
+                    <strong className="salaryAmount">
+                      ${money(dipendente.stipendio)}
+                    </strong>
+
+                    <div className="salaryAutoBadge">
+                      IN MATURAZIONE
+                    </div>
+
+                  </div>
+                ))
               )}
 
             </div>
           </div>
 
-          {/* ==================================
-              STIPENDI DA PAGARE
-          ================================== */}
+          {/* STIPENDI DA PAGARE */}
 
           <div className="salaryPanel">
 
@@ -512,8 +595,9 @@ export default function StipendiPage() {
                 </h2>
 
                 <p>
-                  Stipendi delle settimane concluse,
-                  con data di scadenza.
+                  Gli stipendi delle settimane concluse
+                  rimangono disponibili fino
+                  alla conferma del pagamento.
                 </p>
               </div>
 
@@ -522,20 +606,58 @@ export default function StipendiPage() {
               </span>
             </div>
 
+            <div
+              style={{
+                padding: "12px 20px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: "12px",
+              }}
+            >
+              <strong
+                style={{
+                  color: "#d4af37",
+                }}
+              >
+                TOTALE DA PAGARE:
+                {" "}${money(totaleArretrati)}
+              </strong>
+
+              <button
+                type="button"
+                className="cancelImportButton"
+                disabled={saving !== null}
+                onClick={aggiornaStipendi}
+              >
+                {saving === "aggiorna"
+                  ? "AGGIORNAMENTO..."
+                  : "AGGIORNA STIPENDI"}
+              </button>
+            </div>
+
+            <div className="salaryTableHeader">
+              <span>DIPENDENTE</span>
+              <span>STATO</span>
+              <span>PERCENTUALE</span>
+              <span>SCADENZA</span>
+              <span>STIPENDIO</span>
+              <span>AZIONE</span>
+            </div>
+
             <div className="salaryList">
 
               {arretrati.length === 0 ? (
                 <div className="emptyCart">
-                  Nessuno stipendio arretrato.
+                  Nessuno stipendio da pagare.
                 </div>
               ) : (
                 arretrati.map((pagamento) => {
-
-                  const dipendente = stipendi.find(
-                    (s) =>
-                      s.employee_id ===
+                  const dipendente =
+                    trovaDipendente(
                       pagamento.employee_id
-                  );
+                    );
 
                   return (
                     <div
@@ -543,7 +665,6 @@ export default function StipendiPage() {
                       key={pagamento.id}
                     >
 
-                      {/* DIPENDENTE */}
                       <div className="salaryEmployee">
                         <div className="salaryAvatar">
                           {dipendente?.nome
@@ -551,18 +672,36 @@ export default function StipendiPage() {
                             .toUpperCase() || "D"}
                         </div>
 
-                        <strong>
-                          {dipendente?.nome ||
-                            "Dipendente"}
-                        </strong>
+                        <div>
+                          <strong>
+                            {dipendente?.nome ||
+                              "Dipendente"}
+                          </strong>
+
+                          <div
+                            style={{
+                              fontSize: "11px",
+                              opacity: 0.7,
+                              marginTop: "5px",
+                            }}
+                          >
+                            {dateIT(
+                              pagamento.period_start
+                            )}
+                            {" - "}
+                            {dateIT(
+                              pagamento.period_end
+                            )}
+                          </div>
+                        </div>
                       </div>
 
-                      {/* STATO */}
                       <div className="salaryRoleDisplay">
-                        <span>DA PAGARE</span>
+                        <span>
+                          DA PAGARE
+                        </span>
                       </div>
 
-                      {/* PERCENTUALE */}
                       <div className="salaryPercentageDisplay">
                         <strong>
                           {money(
@@ -571,7 +710,6 @@ export default function StipendiPage() {
                         </strong>
                       </div>
 
-                      {/* SCADENZA */}
                       <div className="salaryRevenue">
                         <strong>
                           {dateIT(
@@ -580,23 +718,21 @@ export default function StipendiPage() {
                         </strong>
                       </div>
 
-                      {/* IMPORTO */}
                       <strong className="salaryAmount">
                         ${money(pagamento.amount)}
                       </strong>
 
-                      {/* PAGAMENTO */}
                       <div className="salaryAutoBadge">
                         <button
                           type="button"
                           className="cancelImportButton"
                           disabled={saving !== null}
                           onClick={() =>
-                            pagaArretrato(pagamento)
+                            pagaStipendio(pagamento)
                           }
                         >
                           {saving ===
-                          `arretrato-${pagamento.id}`
+                          `paga-${pagamento.id}`
                             ? "ATTENDI..."
                             : "STIPENDIO PAGATO"}
                         </button>
@@ -610,9 +746,7 @@ export default function StipendiPage() {
             </div>
           </div>
 
-          {/* ==================================
-              STORICO STIPENDI PAGATI
-          ================================== */}
+          {/* STORICO PAGAMENTI */}
 
           <div className="salaryPanel">
 
@@ -627,8 +761,9 @@ export default function StipendiPage() {
                 </h2>
 
                 <p>
-                  Pagamenti confermati
-                  dall'amministrazione.
+                  Pagamenti confermati.
+                  Puoi annullare un pagamento
+                  e restituire l'importo al Fondo Cassa.
                 </p>
               </div>
 
@@ -637,20 +772,42 @@ export default function StipendiPage() {
               </span>
             </div>
 
+            <div
+              style={{
+                padding: "12px 20px",
+              }}
+            >
+              <strong
+                style={{
+                  color: "#d4af37",
+                }}
+              >
+                TOTALE PAGATO:
+                {" "}${money(totalePagati)}
+              </strong>
+            </div>
+
+            <div className="salaryTableHeader">
+              <span>DIPENDENTE</span>
+              <span>STATO</span>
+              <span>PERCENTUALE</span>
+              <span>SCADENZA</span>
+              <span>STIPENDIO</span>
+              <span>AZIONE</span>
+            </div>
+
             <div className="salaryList">
 
               {pagati.length === 0 ? (
                 <div className="emptyCart">
-                  Nessun pagamento ancora registrato.
+                  Nessun pagamento registrato.
                 </div>
               ) : (
                 pagati.map((pagamento) => {
-
-                  const dipendente = stipendi.find(
-                    (s) =>
-                      s.employee_id ===
+                  const dipendente =
+                    trovaDipendente(
                       pagamento.employee_id
-                  );
+                    );
 
                   return (
                     <div
@@ -658,7 +815,6 @@ export default function StipendiPage() {
                       key={pagamento.id}
                     >
 
-                      {/* DIPENDENTE */}
                       <div className="salaryEmployee">
                         <div className="salaryAvatar">
                           {dipendente?.nome
@@ -666,18 +822,36 @@ export default function StipendiPage() {
                             .toUpperCase() || "D"}
                         </div>
 
-                        <strong>
-                          {dipendente?.nome ||
-                            "Dipendente"}
-                        </strong>
+                        <div>
+                          <strong>
+                            {dipendente?.nome ||
+                              "Dipendente"}
+                          </strong>
+
+                          <div
+                            style={{
+                              fontSize: "11px",
+                              opacity: 0.7,
+                              marginTop: "5px",
+                            }}
+                          >
+                            {dateIT(
+                              pagamento.period_start
+                            )}
+                            {" - "}
+                            {dateIT(
+                              pagamento.period_end
+                            )}
+                          </div>
+                        </div>
                       </div>
 
-                      {/* STATO */}
                       <div className="salaryRoleDisplay">
-                        <span>PAGATO</span>
+                        <span>
+                          PAGATO
+                        </span>
                       </div>
 
-                      {/* PERCENTUALE */}
                       <div className="salaryPercentageDisplay">
                         <strong>
                           {money(
@@ -686,7 +860,6 @@ export default function StipendiPage() {
                         </strong>
                       </div>
 
-                      {/* DATA */}
                       <div className="salaryRevenue">
                         <strong>
                           {dateIT(
@@ -695,14 +868,29 @@ export default function StipendiPage() {
                         </strong>
                       </div>
 
-                      {/* IMPORTO */}
                       <strong className="salaryAmount">
                         ${money(pagamento.amount)}
                       </strong>
 
-                      {/* STATO PAGAMENTO */}
                       <div className="salaryAutoBadge">
-                        PAGATO
+                        <button
+                          type="button"
+                          className="cancelImportButton"
+                          style={{
+                            color: "#ff7777",
+                            borderColor:
+                              "rgba(255,100,100,0.5)",
+                          }}
+                          disabled={saving !== null}
+                          onClick={() =>
+                            annullaPagamento(pagamento)
+                          }
+                        >
+                          {saving ===
+                          `annulla-${pagamento.id}`
+                            ? "ATTENDI..."
+                            : "ANNULLA PAGAMENTO"}
+                        </button>
                       </div>
 
                     </div>
