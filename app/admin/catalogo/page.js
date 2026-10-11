@@ -23,6 +23,37 @@ export default function GestioneCatalogoPage() {
   const [editName, setEditName] = useState("");
   const [editPrice, setEditPrice] = useState("");
 
+  // Stile dedicato ai pulsanti del catalogo.
+  // Non modifica gli altri pulsanti del gestionale.
+  const actionButtonStyle = {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "145px",
+    minWidth: "145px",
+    maxWidth: "145px",
+    minHeight: "46px",
+    padding: "10px 12px",
+    boxSizing: "border-box",
+    fontSize: "14px",
+    fontWeight: 700,
+    lineHeight: 1.2,
+    letterSpacing: "0.3px",
+    textAlign: "center",
+    whiteSpace: "nowrap",
+    flexShrink: 0,
+  };
+
+  const actionGroupStyle = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: "10px",
+    flexWrap: "wrap",
+    flex: "0 1 auto",
+    minWidth: 0,
+  };
+
   useEffect(() => {
     loadPage();
   }, []);
@@ -49,12 +80,12 @@ export default function GestioneCatalogoPage() {
         .eq("id", user.id)
         .single();
 
-      if (error || !data || !data.attivo) {
-        router.replace("/");
-        return;
-      }
-
-      if (data.ruolo !== "admin") {
+      if (
+        error ||
+        !data ||
+        !data.attivo ||
+        data.ruolo !== "admin"
+      ) {
         router.replace("/");
         return;
       }
@@ -63,7 +94,7 @@ export default function GestioneCatalogoPage() {
       await loadProducts();
     } catch (error) {
       console.error("Errore pagina catalogo:", error);
-      setMessage("Impossibile caricare il catalogo.");
+      showMessage("Impossibile caricare il catalogo.");
     } finally {
       setLoading(false);
     }
@@ -79,15 +110,13 @@ export default function GestioneCatalogoPage() {
       .select("id, nome, prezzo, attivo")
       .order("id", { ascending: true });
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
     setProducts(data || []);
   }
 
   // ============================================
-  // FORMATTAZIONE PREZZI
+  // FUNZIONI DI SUPPORTO
   // ============================================
 
   function formatMoney(value) {
@@ -98,9 +127,7 @@ export default function GestioneCatalogoPage() {
   }
 
   function parsePrice(value) {
-    const text = String(value)
-      .trim()
-      .replace(",", ".");
+    const text = String(value).trim().replace(",", ".");
 
     if (!text) return null;
 
@@ -249,13 +276,14 @@ export default function GestioneCatalogoPage() {
   async function toggleProduct(product) {
     if (saving) return;
 
-    const nuovaAttivazione =
-      product.attivo === false;
+    const nuovaAttivazione = product.attivo === false;
 
     const conferma = window.confirm(
       nuovaAttivazione
         ? `Vuoi riattivare "${product.nome}"?`
-        : `Vuoi disattivare "${product.nome}"?\n\nNon comparirà più tra i prodotti selezionabili nelle nuove fatture.`
+        : `Vuoi disattivare "${product.nome}"?\n\n` +
+          "Non comparirà più tra i prodotti " +
+          "selezionabili nelle nuove fatture."
     );
 
     if (!conferma) return;
@@ -315,12 +343,10 @@ export default function GestioneCatalogoPage() {
     );
   }
 
-  if (!profile) {
-    return null;
-  }
+  if (!profile) return null;
 
   // ============================================
-  // PAGINA GESTIONE CATALOGO
+  // PAGINA CATALOGO
   // ============================================
 
   return (
@@ -330,7 +356,6 @@ export default function GestioneCatalogoPage() {
         {/* SIDEBAR UNIFICATA */}
         <Sidebar profile={profile} />
 
-        {/* CONTENUTO */}
         <section className="content">
 
           {/* HEADER */}
@@ -340,12 +365,11 @@ export default function GestioneCatalogoPage() {
                 AQUA BAR
               </p>
 
-              <h2>
-                Gestione Catalogo
-              </h2>
+              <h2>Gestione Catalogo</h2>
 
               <p className="subtitle">
-                Aggiungi prodotti e modifica i prezzi di vendita
+                Aggiungi prodotti e modifica
+                i prezzi di vendita
               </p>
             </div>
 
@@ -377,27 +401,20 @@ export default function GestioneCatalogoPage() {
             </div>
           </header>
 
-          {/* ==================================
-              AGGIUNGI PRODOTTO
-          ================================== */}
-
+          {/* AGGIUNGI PRODOTTO */}
           <div className="invoicePanel">
 
             <p className="welcomeLabel">
               CATALOGO
             </p>
 
-            <h2>
-              Aggiungi prodotto
-            </h2>
+            <h2>Aggiungi prodotto</h2>
 
             <form
               className="invoiceForm"
               onSubmit={addProduct}
             >
-              <label>
-                Nome prodotto
-              </label>
+              <label>Nome prodotto</label>
 
               <input
                 type="text"
@@ -445,23 +462,17 @@ export default function GestioneCatalogoPage() {
                   ? "invoiceMessage success"
                   : "invoiceMessage"
               }
-              style={{
-                marginTop: "20px",
-              }}
+              style={{ marginTop: "20px" }}
+              role="status"
             >
               {message}
             </div>
           )}
 
-          {/* ==================================
-              ELENCO PRODOTTI
-          ================================== */}
-
+          {/* ELENCO PRODOTTI */}
           <div
             className="invoiceHistory"
-            style={{
-              marginTop: "25px",
-            }}
+            style={{ marginTop: "25px" }}
           >
             <div className="invoiceHistoryHeader">
               <div>
@@ -495,18 +506,22 @@ export default function GestioneCatalogoPage() {
                         product.attivo === false
                           ? 0.65
                           : 1,
-                      gap: "15px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "20px",
                       flexWrap: "wrap",
+                      boxSizing: "border-box",
                     }}
                   >
 
                     {editingId === product.id ? (
                       <>
-                        {/* MODIFICA PRODOTTO */}
+                        {/* CAMPI DI MODIFICA */}
                         <div
                           className="invoiceForm"
                           style={{
-                            flex: "1 1 250px",
+                            flex: "1 1 280px",
                             minWidth: 0,
                           }}
                         >
@@ -518,9 +533,7 @@ export default function GestioneCatalogoPage() {
                             type="text"
                             value={editName}
                             onChange={(e) =>
-                              setEditName(
-                                e.target.value
-                              )
+                              setEditName(e.target.value)
                             }
                           />
 
@@ -534,23 +547,17 @@ export default function GestioneCatalogoPage() {
                             step="0.01"
                             value={editPrice}
                             onChange={(e) =>
-                              setEditPrice(
-                                e.target.value
-                              )
+                              setEditPrice(e.target.value)
                             }
                           />
                         </div>
 
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: "10px",
-                            flexWrap: "wrap",
-                          }}
-                        >
+                        {/* SALVA / ANNULLA */}
+                        <div style={actionGroupStyle}>
                           <button
                             type="button"
                             className="invoicePrimaryButton"
+                            style={actionButtonStyle}
                             disabled={saving}
                             onClick={() =>
                               saveEdit(product)
@@ -562,6 +569,7 @@ export default function GestioneCatalogoPage() {
                           <button
                             type="button"
                             className="cancelInvoiceButton"
+                            style={actionButtonStyle}
                             disabled={saving}
                             onClick={cancelEdit}
                           >
@@ -575,7 +583,8 @@ export default function GestioneCatalogoPage() {
                         <div
                           className="invoiceHistoryMain"
                           style={{
-                            flex: "1 1 220px",
+                            flex: "1 1 240px",
+                            minWidth: 0,
                           }}
                         >
                           <div>
@@ -592,10 +601,14 @@ export default function GestioneCatalogoPage() {
                         </div>
 
                         {/* PREZZO */}
-                        <div className="invoiceHistoryTotal">
-                          <small>
-                            PREZZO
-                          </small>
+                        <div
+                          className="invoiceHistoryTotal"
+                          style={{
+                            flex: "0 1 180px",
+                            minWidth: "110px",
+                          }}
+                        >
+                          <small>PREZZO</small>
 
                           <strong>
                             {product.prezzo === null
@@ -607,16 +620,11 @@ export default function GestioneCatalogoPage() {
                         </div>
 
                         {/* AZIONI */}
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: "10px",
-                            flexWrap: "wrap",
-                          }}
-                        >
+                        <div style={actionGroupStyle}>
                           <button
                             type="button"
                             className="invoicePrimaryButton"
+                            style={actionButtonStyle}
                             disabled={saving}
                             onClick={() =>
                               startEdit(product)
@@ -628,6 +636,7 @@ export default function GestioneCatalogoPage() {
                           <button
                             type="button"
                             className="cancelInvoiceButton"
+                            style={actionButtonStyle}
                             disabled={saving}
                             onClick={() =>
                               toggleProduct(product)
@@ -640,8 +649,10 @@ export default function GestioneCatalogoPage() {
                         </div>
                       </>
                     )}
+
                   </div>
                 ))}
+
               </div>
             )}
           </div>
