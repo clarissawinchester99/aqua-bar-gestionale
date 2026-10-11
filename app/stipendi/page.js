@@ -29,13 +29,15 @@ export default function StipendiPage() {
   const dateIT = (value) => {
     if (!value) return "-";
 
-    const [year, month, day] = value.split("-");
+    const [year, month, day] = value
+      .slice(0, 10)
+      .split("-");
 
     return `${day}/${month}/${year}`;
   };
 
   // ==========================================
-  // CARICAMENTO STIPENDI
+  // CARICAMENTO DATI
   // ==========================================
 
   async function loadStipendi() {
@@ -58,18 +60,20 @@ export default function StipendiPage() {
   }
 
   // ==========================================
-  // AUTENTICAZIONE ADMIN
+  // ACCESSO AMMINISTRATORE
   // ==========================================
 
   useEffect(() => {
+    let mounted = true;
+
     async function loadPage() {
       try {
         const {
           data: { user },
-          error,
+          error: authError,
         } = await supabase.auth.getUser();
 
-        if (error || !user) {
+        if (authError || !user) {
           router.replace("/login");
           return;
         }
@@ -93,41 +97,48 @@ export default function StipendiPage() {
           return;
         }
 
+        if (!mounted) return;
+
         setProfile(profilo);
 
-        // Recupera eventuali settimane concluse
-        // non ancora registrate.
+        // Recupera le settimane già concluse.
+        // ON CONFLICT nel database evita duplicati.
         const { error: archiveError } =
           await supabase.rpc(
             "registra_stipendi_arretrati"
           );
 
-        if (archiveError) {
-          console.error(
-            "Errore archiviazione stipendi:",
-            archiveError
-          );
-
+        if (archiveError && mounted) {
           setMessage(
-            "Attenzione: non è stato possibile " +
-            "aggiornare gli stipendi arretrati. " +
+            "Attenzione: impossibile aggiornare " +
+            "gli stipendi arretrati. " +
             archiveError.message
           );
         }
 
-        await loadStipendi();
+        if (mounted) {
+          await loadStipendi();
+        }
       } catch (error) {
         console.error(error);
 
-        setMessage(
-          `Errore caricamento: ${error.message}`
-        );
+        if (mounted) {
+          setMessage(
+            `Errore caricamento: ${error.message}`
+          );
+        }
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     }
 
     loadPage();
+
+    return () => {
+      mounted = false;
+    };
   }, [router]);
 
   // ==========================================
@@ -145,13 +156,13 @@ export default function StipendiPage() {
       dipendente?.nome || "questo dipendente";
 
     const conferma = window.confirm(
-      `CONFERMA PAGAMENTO STIPENDIO\n\n` +
+      "CONFERMA PAGAMENTO STIPENDIO\n\n" +
       `Dipendente: ${nome}\n` +
       `Periodo: ${dateIT(pagamento.period_start)} ` +
       `- ${dateIT(pagamento.period_end)}\n` +
       `Importo: $${money(pagamento.amount)}\n\n` +
-      `L'importo verrà sottratto dal Fondo Cassa.\n\n` +
-      `Vuoi procedere?`
+      "L'importo verrà sottratto dal Fondo Cassa.\n\n" +
+      "Vuoi procedere?"
     );
 
     if (!conferma) return;
@@ -160,7 +171,7 @@ export default function StipendiPage() {
     setMessage("");
 
     try {
-      const { error } = await supabase.rpc(
+      const { data, error } = await supabase.rpc(
         "paga_stipendio",
         {
           p_payment_id: pagamento.id,
@@ -169,13 +180,24 @@ export default function StipendiPage() {
 
       if (error) throw error;
 
-      await loadStipendi();
+      const importo = Number(
+        data?.amount ?? pagamento.amount
+      );
 
       setMessage(
-        `Pagamento di $${money(pagamento.amount)} ` +
-        `a ${nome} completato. ` +
-        `Importo sottratto dal Fondo Cassa.`
+        `Pagamento di ${nome} completato. ` +
+        `$${money(importo)} sottratti dal Fondo Cassa.`
       );
+
+      try {
+        await loadStipendi();
+      } catch (refreshError) {
+        setMessage(
+          `Pagamento di ${nome} completato, ` +
+          `ma impossibile aggiornare la pagina: ` +
+          refreshError.message
+        );
+      }
     } catch (error) {
       setMessage(
         `Errore pagamento: ${error.message}`
@@ -200,17 +222,15 @@ export default function StipendiPage() {
       dipendente?.nome || "questo dipendente";
 
     const conferma = window.confirm(
-      `ANNULLA PAGAMENTO STIPENDIO\n\n` +
+      "ANNULLA PAGAMENTO STIPENDIO\n\n" +
       `Dipendente: ${nome}\n` +
       `Periodo: ${dateIT(pagamento.period_start)} ` +
       `- ${dateIT(pagamento.period_end)}\n` +
       `Importo: $${money(pagamento.amount)}\n\n` +
-      `ATTENZIONE!\n\n` +
-      `Il pagamento verrà annullato.\n` +
-      `$${money(pagamento.amount)} ` +
-      `saranno restituiti al Fondo Cassa.\n\n` +
-      `Lo stipendio tornerà tra quelli da pagare.\n\n` +
-      `Confermi l'annullamento?`
+      "Lo stipendio tornerà tra quelli da pagare.\n" +
+      "Il Fondo Cassa sarà rimborsato soltanto " +
+      "se era stato effettivamente addebitato.\n\n" +
+      "Confermi l'annullamento?"
     );
 
     if (!conferma) return;
@@ -219,7 +239,7 @@ export default function StipendiPage() {
     setMessage("");
 
     try {
-      const { error } = await supabase.rpc(
+      const { data, error } = await supabase.rpc(
         "annulla_pagamento_stipendio",
         {
           p_payment_id: pagamento.id,
@@ -228,14 +248,33 @@ export default function StipendiPage() {
 
       if (error) throw error;
 
-      await loadStipendi();
-
-      setMessage(
-        `Pagamento di ${nome} annullato. ` +
-        `$${money(pagamento.amount)} ` +
-        `restituiti al Fondo Cassa. ` +
-        `Lo stipendio è nuovamente da pagare.`
+      const rimborso = Number(
+        data?.rimborso || 0
       );
+
+      const messaggio =
+        rimborso > 0
+          ? `Pagamento di ${nome} annullato. ` +
+            `$${money(rimborso)} restituiti ` +
+            `al Fondo Cassa. ` +
+            `Lo stipendio è nuovamente da pagare.`
+          : `Pagamento di ${nome} annullato. ` +
+            `Nessun rimborso necessario: ` +
+            `il Fondo Cassa non era stato addebitato. ` +
+            `Lo stipendio è nuovamente da pagare.`;
+
+      setMessage(messaggio);
+
+      try {
+        await loadStipendi();
+      } catch (refreshError) {
+        setMessage(
+          messaggio +
+          " Attenzione: impossibile aggiornare " +
+          "la pagina. " +
+          refreshError.message
+        );
+      }
     } catch (error) {
       setMessage(
         `Errore annullamento: ${error.message}`
@@ -286,7 +325,7 @@ export default function StipendiPage() {
   }
 
   // ==========================================
-  // CALCOLI
+  // CALCOLI RIEPILOGO
   // ==========================================
 
   const totaleFatturato = stipendi.reduce(
@@ -338,19 +377,19 @@ export default function StipendiPage() {
   }
 
   // ==========================================
-  // INTERFACCIA
+  // PAGINA STIPENDI
   // ==========================================
 
   return (
     <main>
       <div className="overlay">
 
+        {/* SIDEBAR UNIFICATA */}
         <Sidebar profile={profile} />
 
         <section className="content">
 
           {/* HEADER */}
-
           <header>
             <div>
               <p className="eyebrow">
@@ -360,8 +399,7 @@ export default function StipendiPage() {
               <h2>Gestione Stipendi</h2>
 
               <p className="subtitle">
-                Stipendi settimanali e pagamenti
-                dal Fondo Cassa
+                Gestione settimanale — Sabato / Sabato
               </p>
             </div>
 
@@ -393,77 +431,55 @@ export default function StipendiPage() {
             </div>
           </header>
 
-          {/* RIEPILOGO */}
+          {/* ==================================
+              RIEPILOGO STIPENDI
+          ================================== */}
 
           <div className="salaryCards">
 
             <div className="card">
-              <div className="cardIcon">
-                ♙
-              </div>
+              <div className="cardIcon">♙</div>
 
               <div>
                 <span>DIPENDENTI</span>
-
-                <h3>
-                  {stipendi.length}
-                </h3>
-
-                <p>
-                  Dipendenti registrati
-                </p>
+                <h3>{stipendi.length}</h3>
+                <p>Dipendenti registrati</p>
               </div>
             </div>
 
             <div className="card">
-              <div className="cardIcon">
-                $
-              </div>
+              <div className="cardIcon">$</div>
 
               <div>
-                <span>
-                  FATTURATO SETTIMANALE
-                </span>
+                <span>FATTURATO SETTIMANALE</span>
 
                 <h3>
                   ${money(totaleFatturato)}
                 </h3>
 
-                <p>
-                  Settimana corrente
-                </p>
+                <p>Fatture non annullate</p>
               </div>
             </div>
 
             <div className="card">
-              <div className="cardIcon">
-                %
-              </div>
+              <div className="cardIcon">%</div>
 
               <div>
-                <span>
-                  STIPENDI SETTIMANALI
-                </span>
+                <span>STIPENDI SETTIMANALI</span>
 
                 <h3>
                   ${money(totaleStipendi)}
                 </h3>
 
-                <p>
-                  In maturazione
-                </p>
+                <p>Settimana corrente</p>
               </div>
             </div>
 
             <div className="card">
-              <div className="cardIcon">
-                !
-              </div>
+              <div className="cardIcon">!</div>
 
               <div>
-                <span>
-                  STIPENDI DA PAGARE
-                </span>
+                <span>STIPENDI DA PAGARE</span>
 
                 <h3>
                   ${money(totaleArretrati)}
@@ -480,12 +496,17 @@ export default function StipendiPage() {
           {/* MESSAGGI */}
 
           {message && (
-            <div className="salaryMessage">
+            <div
+              className="salaryMessage"
+              role="status"
+            >
               {message}
             </div>
           )}
 
-          {/* SETTIMANA CORRENTE */}
+          {/* ==================================
+              SETTIMANA CORRENTE
+          ================================== */}
 
           <div className="salaryPanel">
 
@@ -501,9 +522,10 @@ export default function StipendiPage() {
 
                 <p>
                   Gli stipendi si accumulano
-                  durante la settimana.
-                  Alla chiusura vengono conservati
-                  tra quelli da pagare.
+                  durante la settimana e
+                  ripartono da zero ogni sabato.
+                  Le settimane concluse rimangono
+                  salvate tra gli stipendi da pagare.
                 </p>
               </div>
 
@@ -580,7 +602,9 @@ export default function StipendiPage() {
             </div>
           </div>
 
-          {/* STIPENDI DA PAGARE */}
+          {/* ==================================
+              STIPENDI DA PAGARE
+          ================================== */}
 
           <div className="salaryPanel">
 
@@ -595,9 +619,9 @@ export default function StipendiPage() {
                 </h2>
 
                 <p>
-                  Gli stipendi delle settimane concluse
-                  rimangono disponibili fino
-                  alla conferma del pagamento.
+                  Gli stipendi delle settimane
+                  concluse rimangono disponibili
+                  finché non vengono pagati.
                 </p>
               </div>
 
@@ -616,11 +640,7 @@ export default function StipendiPage() {
                 gap: "12px",
               }}
             >
-              <strong
-                style={{
-                  color: "#d4af37",
-                }}
-              >
+              <strong style={{ color: "#d4af37" }}>
                 TOTALE DA PAGARE:
                 {" "}${money(totaleArretrati)}
               </strong>
@@ -697,9 +717,7 @@ export default function StipendiPage() {
                       </div>
 
                       <div className="salaryRoleDisplay">
-                        <span>
-                          DA PAGARE
-                        </span>
+                        <span>DA PAGARE</span>
                       </div>
 
                       <div className="salaryPercentageDisplay">
@@ -746,7 +764,9 @@ export default function StipendiPage() {
             </div>
           </div>
 
-          {/* STORICO PAGAMENTI */}
+          {/* ==================================
+              STORICO STIPENDI PAGATI
+          ================================== */}
 
           <div className="salaryPanel">
 
@@ -761,9 +781,11 @@ export default function StipendiPage() {
                 </h2>
 
                 <p>
-                  Pagamenti confermati.
+                  Pagamenti confermati
+                  dall'amministrazione.
                   Puoi annullare un pagamento
-                  e restituire l'importo al Fondo Cassa.
+                  e ripristinare lo stipendio
+                  tra quelli da pagare.
                 </p>
               </div>
 
@@ -777,11 +799,7 @@ export default function StipendiPage() {
                 padding: "12px 20px",
               }}
             >
-              <strong
-                style={{
-                  color: "#d4af37",
-                }}
-              >
+              <strong style={{ color: "#d4af37" }}>
                 TOTALE PAGATO:
                 {" "}${money(totalePagati)}
               </strong>
@@ -800,7 +818,7 @@ export default function StipendiPage() {
 
               {pagati.length === 0 ? (
                 <div className="emptyCart">
-                  Nessun pagamento registrato.
+                  Nessun pagamento ancora registrato.
                 </div>
               ) : (
                 pagati.map((pagamento) => {
@@ -847,9 +865,7 @@ export default function StipendiPage() {
                       </div>
 
                       <div className="salaryRoleDisplay">
-                        <span>
-                          PAGATO
-                        </span>
+                        <span>PAGATO</span>
                       </div>
 
                       <div className="salaryPercentageDisplay">
