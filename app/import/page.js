@@ -418,4 +418,197 @@ export default function ImportPage() {
             </div>
 
             <div className="user">
-              <div className="
+                      <div className="avatar">
+                {profile?.nome?.charAt(0).toUpperCase() || "A"}
+              </div>
+
+              <div className="userInfo">
+                <strong>{profile?.nome || "Utente"}</strong>
+                <span>
+                  <i className="onlineDot"></i>
+                  {profile?.ruolo === "admin"
+                    ? "Amministratore"
+                    : "Dipendente"}
+                </span>
+              </div>
+
+              <button className="logoutButton" onClick={logout}>
+                Esci
+              </button>
+            </div>
+          </header>
+
+          <div className="importTopCard">
+            <div>
+              <span>FONDO CASSA DISPONIBILE</span>
+              <h3>${formatMoney(saldo)}</h3>
+            </div>
+            <p>
+              Gli import vengono pagati utilizzando il conto
+              aziendale AQUA BAR.
+            </p>
+          </div>
+
+          <div className="importGrid">
+            {products.length === 0 ? (
+              <div className="importKitCard">
+                <p className="emptyCart">
+                  Nessun prodotto disponibile nel catalogo Import.
+                </p>
+              </div>
+            ) : (
+              products.map((product) => {
+                const quantity = Number(quantities[product.id] || 0);
+
+                return (
+                  <div className="importKitCard" key={product.id}>
+                    <div className="importKitIcon">📦</div>
+                    <p className="welcomeLabel">FORNITURE</p>
+                    <h2>{product.nome}</h2>
+
+                    <p className="importPrice">
+                      ${formatMoney(product.prezzo)}
+                      <span> / unità</span>
+                    </p>
+
+                    <label className="quantityLabel">QUANTITÀ</label>
+
+                    <input
+                      className="quantityInput"
+                      type="number"
+                      min="0"
+                      max="10000"
+                      step="1"
+                      value={quantities[product.id] ?? 0}
+                      onChange={(e) =>
+                        handleQuantityChange(product.id, e.target.value)
+                      }
+                      onFocus={(e) => e.target.select()}
+                    />
+
+                    <div className="kitSubtotal">
+                      <span>Subtotale</span>
+                      <strong>
+                        ${formatMoney(quantity * Number(product.prezzo))}
+                      </strong>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          <div className="importSummary">
+            <div>
+              <p className="welcomeLabel">RIEPILOGO IMPORT</p>
+
+              {selectedProducts.length === 0 ? (
+                <p className="emptyCart">
+                  Nessun prodotto selezionato.
+                </p>
+              ) : (
+                selectedProducts.map((product) => (
+                  <div className="importSummaryRow" key={product.id}>
+                    <span>{product.nome}</span>
+                    <strong>{Number(quantities[product.id])}</strong>
+                  </div>
+                ))
+              )}
+
+              <div className="importTotal">
+                <span>TOTALE</span>
+                <strong>${formatMoney(totale)}</strong>
+              </div>
+
+              <button
+                className="importConfirmButton"
+                onClick={confirmImport}
+                disabled={saving || selectedProducts.length === 0}
+              >
+                {saving ? "REGISTRAZIONE..." : "CONFERMA IMPORT"}
+              </button>
+            </div>
+          </div>
+
+          {message && (
+            <div
+              className={
+                success
+                  ? "invoiceMessage success"
+                  : "invoiceMessage"
+              }
+            >
+              {message}
+            </div>
+          )}
+
+          <div className="importHistory">
+            <div className="importHistoryHeader">
+              <div>
+                <p className="welcomeLabel">MOVIMENTI</p>
+                <h2>Storico Import</h2>
+              </div>
+              <span>{history.length} ordini</span>
+            </div>
+
+            {history.length === 0 ? (
+              <p className="emptyCart">Nessun import registrato.</p>
+            ) : (
+              <div className="importHistoryList">
+                {history.map((order) => (
+                  <div
+                    className={`importHistoryItem ${
+                      order.annullato ? "cancelled" : ""
+                    }`}
+                    key={order.key}
+                  >
+                    <div className="importHistoryMain">
+                      <div className="importOrderNumber">
+                        #{order.id}
+                      </div>
+                      <div>
+                        <strong>Import AQUA BAR</strong>
+                        <p>{formatDate(order.created_at)}</p>
+                      </div>
+                    </div>
+
+                    <div className="importHistoryDetails">
+                      {order.descrizione.map((detail, index) => (
+                        <span key={index}>{detail}</span>
+                      ))}
+                    </div>
+
+                    <div className="importHistoryTotal">
+                      <small>Totale</small>
+                      <strong>${formatMoney(order.totale)}</strong>
+                    </div>
+
+                    <div className="importHistoryAction">
+                      {order.annullato ? (
+                        <span className="cancelledBadge">
+                          ANNULLATO
+                        </span>
+                      ) : order.tipo === "vecchio" ? (
+                        <button
+                          className="cancelImportButton"
+                          onClick={() => cancelImport(order)}
+                          disabled={cancellingId !== null}
+                        >
+                          {cancellingId === order.key
+                            ? "ANNULLAMENTO..."
+                            : "ANNULLA ORDINE"}
+                        </button>
+                      ) : (
+                        <span>Ordine registrato</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}
