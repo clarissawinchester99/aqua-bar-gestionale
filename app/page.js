@@ -68,21 +68,17 @@ export default function Home() {
         supabase.rpc("get_pagamenti_stipendi"),
       ]);
 
-      /* PROFILO */
-
-      if (profileResult.error) {
-        console.error("Errore profilo:", profileResult.error);
-      } else {
-        if (profileResult.data?.attivo === false) {
-          await supabase.auth.signOut();
-          router.replace("/login");
-          return;
-        }
-
-        setProfile(profileResult.data);
+      if (profileResult.error || !profileResult.data) {
+        throw new Error("Impossibile caricare il profilo.");
       }
 
-      /* FONDO CASSA */
+      if (profileResult.data.attivo === false) {
+        await supabase.auth.signOut();
+        router.replace("/login");
+        return;
+      }
+
+      setProfile(profileResult.data);
 
       if (accountResult.error) {
         console.error(
@@ -92,8 +88,6 @@ export default function Home() {
       } else {
         setSaldo(Number(accountResult.data?.saldo) || 0);
       }
-
-      /* FATTURATO PERSONALE */
 
       if (invoiceResult.error) {
         console.error(
@@ -110,8 +104,6 @@ export default function Home() {
         setFatturato(totale);
       }
 
-      /* TOTALE IMPORT */
-
       if (importResult.error) {
         console.error(
           "Errore totale import:",
@@ -121,8 +113,6 @@ export default function Home() {
       } else {
         setTotaleImport(Number(importResult.data) || 0);
       }
-
-      /* MIO STIPENDIO SETTIMANALE */
 
       if (stipendioResult.error) {
         console.error(
@@ -134,8 +124,6 @@ export default function Home() {
         const mio = (stipendioResult.data || [])[0];
         setMioStipendio(Number(mio?.stipendio) || 0);
       }
-
-      /* STIPENDI DA PAGARE */
 
       if (pagamentiResult.error) {
         console.error(
@@ -187,7 +175,7 @@ export default function Home() {
   return (
     <main>
       <div className="overlay">
-        {/* SIDEBAR */}
+        {/* MENU LATERALE */}
 
         <aside className="sidebar">
           <div className="brand">
@@ -196,6 +184,8 @@ export default function Home() {
           </div>
 
           <nav>
+            {/* MENU GENERALE */}
+
             <button className="active">
               <span className="navIcon">⌂</span>
               Dashboard
@@ -215,8 +205,6 @@ export default function Home() {
               Import
             </button>
 
-            {/* PAGINA STIPENDIO PERSONALE */}
-
             <button
               onClick={() => router.push("/mio-stipendio")}
             >
@@ -224,22 +212,64 @@ export default function Home() {
               Il mio stipendio
             </button>
 
-            {/* MENU ADMIN */}
+            {/* AREA RISERVATA ADMIN */}
 
             {profile?.ruolo === "admin" && (
               <>
-                <button
-                  onClick={() => router.push("/stipendi")}
+                <div
+                  style={{
+                    marginTop: "26px",
+                    marginBottom: "12px",
+                    padding: "16px 12px 8px",
+                    borderTop:
+                      "1px solid rgba(212,175,55,0.3)",
+                  }}
                 >
-                  <span className="navIcon">♙</span>
-                  Stipendi
-                </button>
+                  <span
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      color: "#d4af37",
+                      fontSize: "11px",
+                      fontWeight: "bold",
+                      letterSpacing: "2px",
+                    }}
+                  >
+                    ♛ AREA AMMINISTRATORE
+                  </span>
+                </div>
 
                 <button
                   onClick={() => router.push("/dipendenti")}
                 >
                   <span className="navIcon">♟</span>
-                  Dipendenti
+                  Gestione Dipendenti
+                </button>
+
+                <button
+                  onClick={() =>
+                    router.push("/admin/catalogo")
+                  }
+                >
+                  <span className="navIcon">▦</span>
+                  Gestione Catalogo
+                </button>
+
+                <button
+                  onClick={() =>
+                    router.push("/admin/import")
+                  }
+                >
+                  <span className="navIcon">▱</span>
+                  Gestione Import
+                </button>
+
+                <button
+                  onClick={() => router.push("/stipendi")}
+                >
+                  <span className="navIcon">♙</span>
+                  Gestione Stipendi
                 </button>
               </>
             )}
@@ -251,7 +281,7 @@ export default function Home() {
           </div>
         </aside>
 
-        {/* CONTENUTO */}
+        {/* CONTENUTO DASHBOARD */}
 
         <section className="content">
           <header>
@@ -322,7 +352,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* NUOVA CARD STIPENDIO */}
+            {/* STIPENDIO PERSONALE */}
 
             <div className="card">
               <div className="cardIcon">♙</div>
@@ -356,7 +386,7 @@ export default function Home() {
                   onClick={() =>
                     router.push("/mio-stipendio")
                   }
-                  style={{ marginTop: 12 }}
+                  style={{ marginTop: "12px" }}
                 >
                   Vedi il mio stipendio
                 </button>
@@ -364,7 +394,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* BENVENUTO ORIGINALE */}
+          {/* BENVENUTO */}
 
           <div className="welcome">
             <span className="goldLine"></span>
