@@ -17,7 +17,6 @@ export default function ImportPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [cancellingId, setCancellingId] = useState(null);
-
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
 
@@ -117,63 +116,87 @@ export default function ImportPage() {
       }
 
       if (accountResult.error) {
-        console.error("Errore Fondo Cassa:", accountResult.error);
+        console.error(
+          "Errore Fondo Cassa:",
+          accountResult.error
+        );
       } else {
         setSaldo(Number(accountResult.data?.saldo) || 0);
       }
 
       if (productsResult.error) {
-        console.error("Errore catalogo Import:", productsResult.error);
-        setMessage("Impossibile caricare il catalogo Import.");
+        console.error(
+          "Errore catalogo Import:",
+          productsResult.error
+        );
+        setMessage(
+          "Impossibile caricare il catalogo Import."
+        );
       } else {
         setProducts(productsResult.data || []);
       }
 
       if (importsResult.error) {
-        console.error("Errore storico precedente:", importsResult.error);
+        console.error(
+          "Errore storico precedente:",
+          importsResult.error
+        );
       } else {
         setImports(importsResult.data || []);
       }
 
       if (ordersResult.error) {
-        console.error("Errore nuovi ordini:", ordersResult.error);
+        console.error(
+          "Errore nuovi ordini:",
+          ordersResult.error
+        );
       } else {
         setNewOrders(ordersResult.data || []);
       }
     } catch (error) {
-      console.error("Errore caricamento Import:", error);
-      setMessage("Errore durante il caricamento della pagina.");
+      console.error(
+        "Errore caricamento Import:",
+        error
+      );
+      setMessage(
+        "Errore durante il caricamento della pagina."
+      );
     } finally {
       setLoading(false);
     }
   }
 
   async function refreshData() {
-    const [accountResult, importsResult, ordersResult] =
-      await Promise.all([
-        supabase
-          .from("company_account")
-          .select("saldo")
-          .eq("id", 1)
-          .single(),
+    const [
+      accountResult,
+      importsResult,
+      ordersResult,
+    ] = await Promise.all([
+      supabase
+        .from("company_account")
+        .select("saldo")
+        .eq("id", 1)
+        .single(),
 
-        supabase
-          .from("imports")
-          .select(
-            "id, kit_cibo, kit_bevande, prezzo_kit, totale, created_at, annullato, annullato_at"
-          )
-          .order("created_at", { ascending: false }),
+      supabase
+        .from("imports")
+        .select(
+          "id, kit_cibo, kit_bevande, prezzo_kit, totale, created_at, annullato, annullato_at"
+        )
+        .order("created_at", { ascending: false }),
 
-        supabase
-          .from("import_orders")
-          .select(
-            "id, totale, created_at, annullato, import_order_items(nome_prodotto, quantita, prezzo_unitario)"
-          )
-          .order("created_at", { ascending: false }),
-      ]);
+      supabase
+        .from("import_orders")
+        .select(
+          "id, totale, created_at, annullato, import_order_items(nome_prodotto, quantita, prezzo_unitario)"
+        )
+        .order("created_at", { ascending: false }),
+    ]);
 
     if (!accountResult.error) {
-      setSaldo(Number(accountResult.data?.saldo) || 0);
+      setSaldo(
+        Number(accountResult.data?.saldo) || 0
+      );
     }
 
     if (!importsResult.error) {
@@ -211,7 +234,7 @@ export default function ImportPage() {
   }
 
   async function confirmImport() {
-    if (saving) return;
+    if (saving || cancellingId !== null) return;
 
     setMessage("");
     setSuccess(false);
@@ -227,7 +250,9 @@ export default function ImportPage() {
     }
 
     if (cart.length > 100) {
-      setMessage("Puoi acquistare al massimo 100 prodotti diversi.");
+      setMessage(
+        "Puoi acquistare al massimo 100 prodotti diversi."
+      );
       return;
     }
 
@@ -255,15 +280,19 @@ export default function ImportPage() {
       );
 
       setSuccess(true);
-
       await refreshData();
     } catch (error) {
-      console.error("Errore registrazione Import:", error);
+      console.error(
+        "Errore registrazione Import:",
+        error
+      );
 
       const errorMessage = error?.message || "";
 
       setMessage(
-        errorMessage.toLowerCase().includes("fondo cassa")
+        errorMessage
+          .toLowerCase()
+          .includes("fondo cassa")
           ? "Fondo Cassa insufficiente."
           : `Impossibile registrare l'import: ${errorMessage}`
       );
@@ -273,7 +302,13 @@ export default function ImportPage() {
   }
 
   async function cancelImport(order) {
-    if (order.annullato || cancellingId !== null) return;
+    if (
+      order.annullato ||
+      cancellingId !== null ||
+      saving
+    ) {
+      return;
+    }
 
     const confirmed = window.confirm(
       `Vuoi annullare questo ordine?\n\n` +
@@ -306,8 +341,71 @@ export default function ImportPage() {
       setSuccess(true);
       await refreshData();
     } catch (error) {
-      console.error("Errore annullamento:", error);
-      setMessage("Non è stato possibile annullare l'ordine.");
+      console.error(
+        "Errore annullamento vecchio Import:",
+        error
+      );
+
+      setMessage(
+        "Non è stato possibile annullare l'ordine."
+      );
+    } finally {
+      setCancellingId(null);
+    }
+  }
+
+  async function cancelNewImport(order) {
+    if (
+      order.annullato ||
+      cancellingId !== null ||
+      saving ||
+      profile?.ruolo !== "admin"
+    ) {
+      return;
+    }
+
+    const details = order.descrizione.join("\n");
+
+    const confirmed = window.confirm(
+      `Vuoi annullare questo ordine?\n\n` +
+        `${details}\n\n` +
+        `Rimborso: $${formatMoney(order.totale)}\n\n` +
+        `Il denaro verrà restituito al Fondo Cassa.`
+    );
+
+    if (!confirmed) return;
+
+    setMessage("");
+    setSuccess(false);
+    setCancellingId(`new-${order.id}`);
+
+    try {
+      const { data, error } = await supabase.rpc(
+        "annulla_import_dinamico",
+        { p_order_id: order.id }
+      );
+
+      if (error) throw error;
+
+      setMessage(
+        `Ordine annullato. $${formatMoney(
+          data?.rimborso
+        )} restituiti al Fondo Cassa.`
+      );
+
+      setSuccess(true);
+      await refreshData();
+    } catch (error) {
+      console.error(
+        "Errore annullamento nuovo Import:",
+        error
+      );
+
+      setMessage(
+        `Non è stato possibile annullare l'ordine: ${
+          error?.message || "Errore sconosciuto"
+        }`
+      );
     } finally {
       setCancellingId(null);
     }
@@ -328,12 +426,16 @@ export default function ImportPage() {
         `Kit Bevande: ${order.kit_bevande}`,
       ],
     })),
+
     ...newOrders.map((order) => ({
       ...order,
       tipo: "nuovo",
       key: `new-${order.id}`,
-      descrizione: (order.import_order_items || []).map(
-        (item) => `${item.nome_prodotto}: ${item.quantita}`
+      descrizione: (
+        order.import_order_items || []
+      ).map(
+        (item) =>
+          `${item.nome_prodotto}: ${item.quantita}`
       ),
     })),
   ].sort(
@@ -345,7 +447,9 @@ export default function ImportPage() {
   if (loading) {
     return (
       <main className="loadingPage">
-        <div className="loadingText">AQUA BAR</div>
+        <div className="loadingText">
+          AQUA BAR
+        </div>
       </main>
     );
   }
@@ -362,12 +466,16 @@ export default function ImportPage() {
           </div>
 
           <nav>
-            <button onClick={() => router.push("/")}>
+            <button
+              onClick={() => router.push("/")}
+            >
               <span className="navIcon">⌂</span>
               Dashboard
             </button>
 
-            <button onClick={() => router.push("/fatture")}>
+            <button
+              onClick={() => router.push("/fatture")}
+            >
               <span className="navIcon">▤</span>
               Fatture
             </button>
@@ -379,18 +487,28 @@ export default function ImportPage() {
 
             {profile?.ruolo === "admin" && (
               <>
-                <button onClick={() => router.push("/stipendi")}>
+                <button
+                  onClick={() =>
+                    router.push("/stipendi")
+                  }
+                >
                   <span className="navIcon">♙</span>
                   Stipendi
                 </button>
 
-                <button onClick={() => router.push("/dipendenti")}>
+                <button
+                  onClick={() =>
+                    router.push("/dipendenti")
+                  }
+                >
                   <span className="navIcon">♟</span>
                   Dipendenti
                 </button>
 
                 <button
-                  onClick={() => router.push("/admin/import")}
+                  onClick={() =>
+                    router.push("/admin/import")
+                  }
                 >
                   <span className="navIcon">▦</span>
                   Catalogo Import
@@ -418,60 +536,96 @@ export default function ImportPage() {
             </div>
 
             <div className="user">
-                      <div className="avatar">
-                {profile?.nome?.charAt(0).toUpperCase() || "A"}
+              <div className="avatar">
+                {profile?.nome
+                  ?.charAt(0)
+                  .toUpperCase() || "A"}
               </div>
 
               <div className="userInfo">
-                <strong>{profile?.nome || "Utente"}</strong>
+                <strong>
+                  {profile?.nome || "Utente"}
+                </strong>
+
                 <span>
                   <i className="onlineDot"></i>
+
                   {profile?.ruolo === "admin"
                     ? "Amministratore"
                     : "Dipendente"}
                 </span>
               </div>
 
-              <button className="logoutButton" onClick={logout}>
+              <button
+                className="logoutButton"
+                onClick={logout}
+              >
                 Esci
               </button>
             </div>
           </header>
 
+          {/* FONDO CASSA */}
+
           <div className="importTopCard">
             <div>
-              <span>FONDO CASSA DISPONIBILE</span>
-              <h3>${formatMoney(saldo)}</h3>
+              <span>
+                FONDO CASSA DISPONIBILE
+              </span>
+
+              <h3>
+                ${formatMoney(saldo)}
+              </h3>
             </div>
+
             <p>
-              Gli import vengono pagati utilizzando il conto
-              aziendale AQUA BAR.
+              Gli import vengono pagati
+              utilizzando il conto aziendale
+              AQUA BAR.
             </p>
           </div>
+
+          {/* CATALOGO PRODOTTI */}
 
           <div className="importGrid">
             {products.length === 0 ? (
               <div className="importKitCard">
                 <p className="emptyCart">
-                  Nessun prodotto disponibile nel catalogo Import.
+                  Nessun prodotto disponibile
+                  nel catalogo Import.
                 </p>
               </div>
             ) : (
               products.map((product) => {
-                const quantity = Number(quantities[product.id] || 0);
+                const quantity = Number(
+                  quantities[product.id] || 0
+                );
 
                 return (
-                  <div className="importKitCard" key={product.id}>
-                    <div className="importKitIcon">📦</div>
-                    <p className="welcomeLabel">FORNITURE</p>
-                    <h2>{product.nome}</h2>
+                  <div
+                    className="importKitCard"
+                    key={product.id}
+                  >
+                    <div className="importKitIcon">
+                      📦
+                    </div>
+
+                    <p className="welcomeLabel">
+                      FORNITURE
+                    </p>
+
+                    <h2>
+                      {product.nome}
+                    </h2>
 
                     <p className="importPrice">
                       ${formatMoney(product.prezzo)}
                       <span> / unità</span>
                     </p>
 
-                    <label className="quantityLabel">QUANTITÀ</label>
+                    <label className="quantityLabel">
+                      QUANTITÀ
+                    </label>
 
                     <input
                       className="quantityInput"
@@ -479,17 +633,29 @@ export default function ImportPage() {
                       min="0"
                       max="10000"
                       step="1"
-                      value={quantities[product.id] ?? 0}
-                      onChange={(e) =>
-                        handleQuantityChange(product.id, e.target.value)
+                      value={
+                        quantities[product.id] ?? 0
                       }
-                      onFocus={(e) => e.target.select()}
+                      onChange={(e) =>
+                        handleQuantityChange(
+                          product.id,
+                          e.target.value
+                        )
+                      }
+                      onFocus={(e) =>
+                        e.target.select()
+                      }
                     />
 
                     <div className="kitSubtotal">
                       <span>Subtotale</span>
+
                       <strong>
-                        ${formatMoney(quantity * Number(product.prezzo))}
+                        $
+                        {formatMoney(
+                          quantity *
+                            Number(product.prezzo)
+                        )}
                       </strong>
                     </div>
                   </div>
@@ -498,9 +664,13 @@ export default function ImportPage() {
             )}
           </div>
 
+          {/* RIEPILOGO */}
+
           <div className="importSummary">
             <div>
-              <p className="welcomeLabel">RIEPILOGO IMPORT</p>
+              <p className="welcomeLabel">
+                RIEPILOGO IMPORT
+              </p>
 
               {selectedProducts.length === 0 ? (
                 <p className="emptyCart">
@@ -508,27 +678,48 @@ export default function ImportPage() {
                 </p>
               ) : (
                 selectedProducts.map((product) => (
-                  <div className="importSummaryRow" key={product.id}>
-                    <span>{product.nome}</span>
-                    <strong>{Number(quantities[product.id])}</strong>
+                  <div
+                    className="importSummaryRow"
+                    key={product.id}
+                  >
+                    <span>
+                      {product.nome}
+                    </span>
+
+                    <strong>
+                      {Number(
+                        quantities[product.id]
+                      )}
+                    </strong>
                   </div>
                 ))
               )}
 
               <div className="importTotal">
                 <span>TOTALE</span>
-                <strong>${formatMoney(totale)}</strong>
+
+                <strong>
+                  ${formatMoney(totale)}
+                </strong>
               </div>
 
               <button
                 className="importConfirmButton"
                 onClick={confirmImport}
-                disabled={saving || selectedProducts.length === 0}
+                disabled={
+                  saving ||
+                  cancellingId !== null ||
+                  selectedProducts.length === 0
+                }
               >
-                {saving ? "REGISTRAZIONE..." : "CONFERMA IMPORT"}
+                {saving
+                  ? "REGISTRAZIONE..."
+                  : "CONFERMA IMPORT"}
               </button>
             </div>
           </div>
+
+          {/* MESSAGGI */}
 
           {message && (
             <div
@@ -542,23 +733,37 @@ export default function ImportPage() {
             </div>
           )}
 
+          {/* STORICO IMPORT */}
+
           <div className="importHistory">
             <div className="importHistoryHeader">
               <div>
-                <p className="welcomeLabel">MOVIMENTI</p>
-                <h2>Storico Import</h2>
+                <p className="welcomeLabel">
+                  MOVIMENTI
+                </p>
+
+                <h2>
+                  Storico Import
+                </h2>
               </div>
-              <span>{history.length} ordini</span>
+
+              <span>
+                {history.length} ordini
+              </span>
             </div>
 
             {history.length === 0 ? (
-              <p className="emptyCart">Nessun import registrato.</p>
+              <p className="emptyCart">
+                Nessun import registrato.
+              </p>
             ) : (
               <div className="importHistoryList">
                 {history.map((order) => (
                   <div
                     className={`importHistoryItem ${
-                      order.annullato ? "cancelled" : ""
+                      order.annullato
+                        ? "cancelled"
+                        : ""
                     }`}
                     key={order.key}
                   >
@@ -566,21 +771,41 @@ export default function ImportPage() {
                       <div className="importOrderNumber">
                         #{order.id}
                       </div>
+
                       <div>
-                        <strong>Import AQUA BAR</strong>
-                        <p>{formatDate(order.created_at)}</p>
+                        <strong>
+                          Import AQUA BAR
+                        </strong>
+
+                        <p>
+                          {formatDate(
+                            order.created_at
+                          )}
+                        </p>
                       </div>
                     </div>
 
                     <div className="importHistoryDetails">
-                      {order.descrizione.map((detail, index) => (
-                        <span key={index}>{detail}</span>
-                      ))}
+                      {order.descrizione.map(
+                        (detail, index) => (
+                          <span key={index}>
+                            {detail}
+                          </span>
+                        )
+                      )}
                     </div>
 
                     <div className="importHistoryTotal">
-                      <small>Totale</small>
-                      <strong>${formatMoney(order.totale)}</strong>
+                      <small>
+                        Totale
+                      </small>
+
+                      <strong>
+                        $
+                        {formatMoney(
+                          order.totale
+                        )}
+                      </strong>
                     </div>
 
                     <div className="importHistoryAction">
@@ -591,15 +816,37 @@ export default function ImportPage() {
                       ) : order.tipo === "vecchio" ? (
                         <button
                           className="cancelImportButton"
-                          onClick={() => cancelImport(order)}
-                          disabled={cancellingId !== null}
+                          onClick={() =>
+                            cancelImport(order)
+                          }
+                          disabled={
+                            cancellingId !== null ||
+                            saving
+                          }
+                        >
+                          {cancellingId === order.key
+                            ? "ANNULLAMENTO..."
+                            : "ANNULLA ORDINE"}
+                        </button>
+                      ) : profile?.ruolo === "admin" ? (
+                        <button
+                          className="cancelImportButton"
+                          onClick={() =>
+                            cancelNewImport(order)
+                          }
+                          disabled={
+                            cancellingId !== null ||
+                            saving
+                          }
                         >
                           {cancellingId === order.key
                             ? "ANNULLAMENTO..."
                             : "ANNULLA ORDINE"}
                         </button>
                       ) : (
-                        <span>Ordine registrato</span>
+                        <span>
+                          Ordine registrato
+                        </span>
                       )}
                     </div>
                   </div>
