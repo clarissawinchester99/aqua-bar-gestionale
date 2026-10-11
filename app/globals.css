@@ -3432,3 +3432,129 @@ header h2,
     0 2px 12px rgba(0, 0, 0, 0.75),
     0 0 15px rgba(232, 198, 109, 0.10);
 }
+
+/* =========================================
+   AQUA BAR - TABELLE STIPENDI RESPONSIVE
+========================================= */
+
+.salaryPanel {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.salaryTableHeader,
+.salaryRow {
+  display: grid;
+  grid-template-columns:
+    minmax(180px, 2fr)
+    minmax(95px, 1fr)
+    minmax(95px, 0.85fr)
+    minmax(120px, 1.1fr)
+    minmax(120px, 1.1fr)
+    minmax(145px, 1.25fr);
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.salaryTableHeader {
+  padding: 15px 20px;
+}
+
+.salaryRow {
+  padding: 18px 20px;
+}
+
+.salaryTableHeader > *,
+.salaryRow > * {
+  min-width: 0;
+}
+
+.salaryEmployee {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.salaryEmployee > div:last-child {
+  min-width: 0;
+}
+
+.salaryEmployee strong {
+  overflow-wrap: anywhere;
+}
+
+.salaryRoleDisplay,
+.salaryPercentageDisplay,
+.salaryRevenue,
+.salaryAmount,
+.salaryAutoBadge {
+  min-width: 0;
+}
+
+.salaryAmount,
+.salaryRevenue {
+  font-variant-numeric: tabular-nums;
+}
+
+.salaryAutoBadge {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.salaryAutoBadge .cancelImportButton {
+  width: 100%;
+  max-width: 175px;
+  min-height: 42px;
+  padding: 9px 12px;
+  font-size: 12px;
+  line-height: 1.3;
+  white-space: normal;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+/* Schermi medi */
+
+@media (max-width: 1350px) {
+  .salaryTableHeader,
+  .salaryRow {
+    grid-template-columns:
+      minmax(160px, 1.8fr)
+      minmax(85px, 0.9fr)
+      minmax(85px, 0.8fr)
+      minmax(110px, 1fr)
+      minmax(110px, 1fr)
+      minmax(130px, 1.2fr);
+    gap: 8px;
+  }
+
+  .salaryTableHeader {
+    padding: 14px 12px;
+    font-size: 11px;
+  }
+
+  .salaryRow {
+    padding: 16px 12px;
+    font-size: 13px;
+  }
+}
+
+/* Tablet e finestre strette:
+   scorrimento orizzontale senza tagli */
+
+@media (max-width: 1050px) {
+  .salaryPanel {
+    overflow-x: auto;
+  }
+
+  .salaryTableHeader,
+  .salaryRow {
+    min-width: 850px;
+  }
+}
+
