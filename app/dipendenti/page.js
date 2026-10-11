@@ -1,8 +1,10 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
+import Sidebar from "../../components/Sidebar";
 
 const RUOLI = {
   Proprietario: 45,
@@ -27,12 +29,10 @@ export default function DipendentiPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [actionId, setActionId] = useState(null);
-
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
 
-  const percentuale =
-    RUOLI[ruoloLavorativo] ?? 20;
+  const percentuale = RUOLI[ruoloLavorativo] ?? 20;
 
   useEffect(() => {
     loadPage();
@@ -67,11 +67,7 @@ export default function DipendentiPage() {
 
       if (profileError || !profilo) {
         console.error(profileError);
-
-        setMessage(
-          "Errore nel caricamento del profilo."
-        );
-
+        setMessage("Errore nel caricamento del profilo.");
         return;
       }
 
@@ -84,14 +80,10 @@ export default function DipendentiPage() {
       }
 
       setProfile(profilo);
-
       await loadDipendenti();
     } catch (error) {
       console.error(error);
-
-      setMessage(
-        "Errore durante il caricamento."
-      );
+      setMessage("Errore durante il caricamento.");
     } finally {
       setLoading(false);
     }
@@ -102,33 +94,27 @@ export default function DipendentiPage() {
   // ============================================
 
   async function loadDipendenti() {
-    const { data, error } =
-      await supabase
-        .from("profiles")
-        .select(`
-          id,
-          nome,
-          username,
-          ruolo,
-          ruolo_lavorativo,
-          percentuale_stipendio,
-          attivo,
-          created_at
-        `)
-        .order("created_at", {
-          ascending: false,
-        });
+    const { data, error } = await supabase
+      .from("profiles")
+      .select(`
+        id,
+        nome,
+        username,
+        ruolo,
+        ruolo_lavorativo,
+        percentuale_stipendio,
+        attivo,
+        created_at
+      `)
+      .order("created_at", {
+        ascending: false,
+      });
 
     if (error) {
-      console.error(
-        "Errore dipendenti:",
-        error
-      );
-
+      console.error("Errore dipendenti:", error);
       setMessage(
         "Non riesco a leggere l'elenco dipendenti."
       );
-
       return;
     }
 
@@ -146,24 +132,17 @@ export default function DipendentiPage() {
     } = await supabase.auth.getSession();
 
     if (sessionError || !session) {
-      throw new Error(
-        "Sessione non valida."
-      );
+      throw new Error("Sessione non valida.");
     }
 
     const { data, error } =
       await supabase.functions.invoke(
         "gestione-dipendenti",
-        {
-          body,
-        }
+        { body }
       );
 
     if (error) {
-      console.error(
-        "Errore Edge Function:",
-        error
-      );
+      console.error("Errore Edge Function:", error);
 
       let messaggio =
         error.message ||
@@ -172,31 +151,19 @@ export default function DipendentiPage() {
       try {
         if (
           error.context &&
-          typeof error.context.json ===
-            "function"
+          typeof error.context.json === "function"
         ) {
-          const result =
-            await error.context.json();
+          const result = await error.context.json();
 
           if (result?.error) {
-            messaggio =
-              result.error;
-          } else if (
-            result?.message
-          ) {
-            messaggio =
-              result.message;
+            messaggio = result.error;
+          } else if (result?.message) {
+            messaggio = result.message;
           }
-        } else if (
-          error.context?.error
-        ) {
-          messaggio =
-            error.context.error;
-        } else if (
-          error.context?.message
-        ) {
-          messaggio =
-            error.context.message;
+        } else if (error.context?.error) {
+          messaggio = error.context.error;
+        } else if (error.context?.message) {
+          messaggio = error.context.message;
         }
       } catch (contextError) {
         console.error(
@@ -210,8 +177,7 @@ export default function DipendentiPage() {
 
     if (!data?.success) {
       throw new Error(
-        data?.error ||
-          "Operazione non riuscita."
+        data?.error || "Operazione non riuscita."
       );
     }
 
@@ -230,40 +196,27 @@ export default function DipendentiPage() {
     setMessage("");
     setSuccess(false);
 
-    const cleanNome =
-      nome.trim();
+    const cleanNome = nome.trim();
 
-    const cleanUsername =
-      username
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, "");
+    const cleanUsername = username
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "");
 
-    const cleanRuolo =
-      ruoloLavorativo;
-
-    const percentualeNumero =
-      RUOLI[cleanRuolo];
+    const cleanRuolo = ruoloLavorativo;
+    const percentualeNumero = RUOLI[cleanRuolo];
 
     if (!cleanNome) {
-      setMessage(
-        "Inserisci il nome del dipendente."
-      );
+      setMessage("Inserisci il nome del dipendente.");
       return;
     }
 
     if (!cleanUsername) {
-      setMessage(
-        "Inserisci uno username."
-      );
+      setMessage("Inserisci uno username.");
       return;
     }
 
-    if (
-      !/^[a-z0-9._-]+$/.test(
-        cleanUsername
-      )
-    ) {
+    if (!/^[a-z0-9._-]+$/.test(cleanUsername)) {
       setMessage(
         "Lo username può contenere solo lettere, numeri, punto, trattino e underscore."
       );
@@ -283,48 +236,33 @@ export default function DipendentiPage() {
         cleanRuolo
       )
     ) {
-      setMessage(
-        "Seleziona un ruolo valido."
-      );
+      setMessage("Seleziona un ruolo valido.");
       return;
     }
 
     setSaving(true);
 
     try {
-      const result =
-        await gestioneDipendente({
-          action: "assumi",
-
-          nome: cleanNome,
-
-          username:
-            cleanUsername,
-
-          password,
-
-          ruolo_lavorativo:
-            cleanRuolo,
-
-          percentuale_stipendio:
-            percentualeNumero,
-        });
+      const result = await gestioneDipendente({
+        action: "assumi",
+        nome: cleanNome,
+        username: cleanUsername,
+        password,
+        ruolo_lavorativo: cleanRuolo,
+        percentuale_stipendio: percentualeNumero,
+      });
 
       setNome("");
       setUsername("");
       setPassword("");
-
-      setRuoloLavorativo(
-        "Dipendente"
-      );
+      setRuoloLavorativo("Dipendente");
 
       setMessage(
         result.message ||
-          "Dipendente assunto con successo."
+        "Dipendente assunto con successo."
       );
 
       setSuccess(true);
-
       await loadDipendenti();
     } catch (error) {
       console.error(error);
@@ -342,51 +280,40 @@ export default function DipendentiPage() {
   }
 
   // ============================================
-  // LICENZIA
+  // LICENZIA DIPENDENTE
   // ============================================
 
-  async function licenziaDipendente(
-    dipendente
-  ) {
+  async function licenziaDipendente(dipendente) {
     if (actionId) return;
 
-    const conferma =
-      window.confirm(
-        `Vuoi licenziare ${dipendente.nome}?\n\n` +
-          `Username: @${dipendente.username || "-"}\n` +
-          `Ruolo: ${
-            dipendente.ruolo_lavorativo ||
-            "Dipendente"
-          }\n\n` +
-          `Non potrà più effettuare il login.\n` +
-          `Le sue fatture e lo storico rimarranno salvati.`
-      );
+    const conferma = window.confirm(
+      `Vuoi licenziare ${dipendente.nome}?\n\n` +
+      `Username: @${dipendente.username || "-"}\n` +
+      `Ruolo: ${
+        dipendente.ruolo_lavorativo || "Dipendente"
+      }\n\n` +
+      `Non potrà più effettuare il login.\n` +
+      `Le sue fatture e lo storico rimarranno salvati.`
+    );
 
     if (!conferma) return;
 
-    setActionId(
-      dipendente.id
-    );
-
+    setActionId(dipendente.id);
     setMessage("");
     setSuccess(false);
 
     try {
-      const result =
-        await gestioneDipendente({
-          action: "licenzia",
-
-          employee_id:
-            dipendente.id,
-        });
+      const result = await gestioneDipendente({
+        action: "licenzia",
+        employee_id: dipendente.id,
+      });
 
       setMessage(
         result.message ||
-          `${dipendente.nome} è stato licenziato.`
+        `${dipendente.nome} è stato licenziato.`
       );
 
       setSuccess(true);
-
       await loadDipendenti();
     } catch (error) {
       console.error(error);
@@ -404,45 +331,35 @@ export default function DipendentiPage() {
   }
 
   // ============================================
-  // RIASSUMI
+  // RIASSUMI DIPENDENTE
   // ============================================
 
-  async function riattivaDipendente(
-    dipendente
-  ) {
+  async function riattivaDipendente(dipendente) {
     if (actionId) return;
 
-    const conferma =
-      window.confirm(
-        `Vuoi riassumere ${dipendente.nome}?\n\n` +
-          `L'account verrà riattivato e potrà nuovamente accedere al gestionale.`
-      );
+    const conferma = window.confirm(
+      `Vuoi riassumere ${dipendente.nome}?\n\n` +
+      `L'account verrà riattivato e potrà nuovamente accedere al gestionale.`
+    );
 
     if (!conferma) return;
 
-    setActionId(
-      dipendente.id
-    );
-
+    setActionId(dipendente.id);
     setMessage("");
     setSuccess(false);
 
     try {
-      const result =
-        await gestioneDipendente({
-          action: "riattiva",
-
-          employee_id:
-            dipendente.id,
-        });
+      const result = await gestioneDipendente({
+        action: "riattiva",
+        employee_id: dipendente.id,
+      });
 
       setMessage(
         result.message ||
-          `${dipendente.nome} è stato riattivato.`
+        `${dipendente.nome} è stato riattivato.`
       );
 
       setSuccess(true);
-
       await loadDipendenti();
     } catch (error) {
       console.error(error);
@@ -463,64 +380,48 @@ export default function DipendentiPage() {
   // ELIMINA DEFINITIVAMENTE
   // ============================================
 
-  async function eliminaDipendente(
-    dipendente
-  ) {
+  async function eliminaDipendente(dipendente) {
     if (actionId) return;
 
-    const primaConferma =
-      window.confirm(
-        `ATTENZIONE!\n\n` +
-          `Stai per eliminare definitivamente ${dipendente.nome}.\n\n` +
-          `Username: @${dipendente.username || "-"}\n` +
-          `Ruolo: ${
-            dipendente.ruolo_lavorativo ||
-            "Dipendente"
-          }\n\n` +
-          `L'account verrà eliminato definitivamente.\n\n` +
-          `Le fatture e gli import già registrati rimarranno nello storico.\n\n` +
-          `Vuoi continuare?`
-      );
-
-    if (!primaConferma) {
-      return;
-    }
-
-    const secondaConferma =
-      window.confirm(
-        `ULTIMA CONFERMA\n\n` +
-          `Vuoi DAVVERO eliminare definitivamente ${dipendente.nome}?\n\n` +
-          `Questa operazione NON può essere annullata.\n\n` +
-          `Premi OK per procedere.`
-      );
-
-    if (!secondaConferma) {
-      return;
-    }
-
-    setActionId(
-      dipendente.id
+    const primaConferma = window.confirm(
+      `ATTENZIONE!\n\n` +
+      `Stai per eliminare definitivamente ${dipendente.nome}.\n\n` +
+      `Username: @${dipendente.username || "-"}\n` +
+      `Ruolo: ${
+        dipendente.ruolo_lavorativo || "Dipendente"
+      }\n\n` +
+      `L'account verrà eliminato definitivamente.\n\n` +
+      `Le fatture e gli import già registrati rimarranno nello storico.\n\n` +
+      `Vuoi continuare?`
     );
 
+    if (!primaConferma) return;
+
+    const secondaConferma = window.confirm(
+      `ULTIMA CONFERMA\n\n` +
+      `Vuoi DAVVERO eliminare definitivamente ${dipendente.nome}?\n\n` +
+      `Questa operazione NON può essere annullata.\n\n` +
+      `Premi OK per procedere.`
+    );
+
+    if (!secondaConferma) return;
+
+    setActionId(dipendente.id);
     setMessage("");
     setSuccess(false);
 
     try {
-      const result =
-        await gestioneDipendente({
-          action: "elimina",
-
-          employee_id:
-            dipendente.id,
-        });
+      const result = await gestioneDipendente({
+        action: "elimina",
+        employee_id: dipendente.id,
+      });
 
       setMessage(
         result.message ||
-          `${dipendente.nome} è stato eliminato definitivamente.`
+        `${dipendente.nome} è stato eliminato definitivamente.`
       );
 
       setSuccess(true);
-
       await loadDipendenti();
     } catch (error) {
       console.error(error);
@@ -543,24 +444,17 @@ export default function DipendentiPage() {
 
   async function logout() {
     await supabase.auth.signOut();
-
-    router.replace(
-      "/login"
-    );
+    router.replace("/login");
   }
 
   // ============================================
-  // DATA
+  // FORMATTAZIONE DATA
   // ============================================
 
   function formatDate(value) {
-    if (!value) {
-      return "-";
-    }
+    if (!value) return "-";
 
-    return new Date(
-      value
-    ).toLocaleDateString(
+    return new Date(value).toLocaleDateString(
       "it-IT",
       {
         day: "2-digit",
@@ -571,179 +465,73 @@ export default function DipendentiPage() {
   }
 
   // ============================================
-  // LOADING
+  // CARICAMENTO
   // ============================================
 
   if (loading) {
     return (
       <main className="loadingPage">
-
         <div className="loadingText">
           AQUA BAR
         </div>
-
       </main>
     );
   }
 
   // ============================================
-  // PAGINA
+  // PAGINA GESTIONE DIPENDENTI
   // ============================================
 
   return (
     <main>
-
       <div className="overlay">
 
-        {/* SIDEBAR */}
-
-        <aside className="sidebar">
-
-          <div className="brand">
-            <h1>AQUA</h1>
-            <span>BAR</span>
-          </div>
-
-          <nav>
-
-            <button
-              onClick={() =>
-                router.push("/")
-              }
-            >
-              <span className="navIcon">
-                ⌂
-              </span>
-
-              Dashboard
-            </button>
-
-            <button
-              onClick={() =>
-                router.push(
-                  "/fatture"
-                )
-              }
-            >
-              <span className="navIcon">
-                ▤
-              </span>
-
-              Fatture
-            </button>
-
-            <button
-              onClick={() =>
-                router.push(
-                  "/import"
-                )
-              }
-            >
-              <span className="navIcon">
-                ◇
-              </span>
-
-              Import
-            </button>
-
-            <button
-              onClick={() =>
-                router.push(
-                  "/stipendi"
-                )
-              }
-            >
-              <span className="navIcon">
-                ♙
-              </span>
-
-              Stipendi
-            </button>
-
-            <button className="active">
-
-              <span className="navIcon">
-                ♟
-              </span>
-
-              Dipendenti
-            </button>
-
-          </nav>
-
-          <div className="sidebarBottom">
-
-            <p>
-              Gestionale AQUA BAR
-            </p>
-
-            <small>
-              FiveM Management
-            </small>
-
-          </div>
-
-        </aside>
+        {/* SIDEBAR UNIFICATA */}
+        <Sidebar profile={profile} />
 
         {/* CONTENUTO */}
-
         <section className="content">
 
+          {/* HEADER */}
           <header>
-
             <div>
-
               <p className="eyebrow">
                 AQUA BAR
               </p>
 
-              <h2>
-                Dipendenti
-              </h2>
+              <h2>Dipendenti</h2>
 
               <p className="subtitle">
                 Gestione del personale
               </p>
-
             </div>
 
             <div className="user">
-
               <div className="avatar">
-
                 {profile?.nome
                   ?.charAt(0)
-                  .toUpperCase() ||
-                  "A"}
-
+                  .toUpperCase() || "A"}
               </div>
 
               <div className="userInfo">
-
                 <strong>
-                  {profile?.nome ||
-                    "Admin"}
+                  {profile?.nome || "Admin"}
                 </strong>
 
                 <span>
-
                   <i className="onlineDot"></i>
-
                   Amministratore
-
                 </span>
-
               </div>
 
               <button
+                type="button"
                 className="logoutButton"
                 onClick={logout}
               >
                 Esci
               </button>
-
             </div>
-
           </header>
 
           {/* ==================================
@@ -753,7 +541,6 @@ export default function DipendentiPage() {
           <div className="employeeCreateCard">
 
             <div className="employeeSectionTitle">
-
               <p className="welcomeLabel">
                 NUOVA ASSUNZIONE
               </p>
@@ -766,103 +553,70 @@ export default function DipendentiPage() {
                 Crea le credenziali di accesso
                 per un nuovo membro dello staff.
               </p>
-
             </div>
 
             <form
               className="employeeForm"
-              onSubmit={
-                assumiDipendente
-              }
+              onSubmit={assumiDipendente}
             >
 
               {/* NOME */}
-
               <div className="employeeField">
-
-                <label>
-                  NOME
-                </label>
+                <label>NOME</label>
 
                 <input
                   type="text"
                   placeholder="Es. Mario Rossi"
                   value={nome}
                   onChange={(e) =>
-                    setNome(
-                      e.target.value
-                    )
+                    setNome(e.target.value)
                   }
                   required
                 />
-
               </div>
 
               {/* USERNAME */}
-
               <div className="employeeField">
-
-                <label>
-                  USERNAME
-                </label>
+                <label>USERNAME</label>
 
                 <input
                   type="text"
                   placeholder="Es. mario"
                   value={username}
                   onChange={(e) =>
-                    setUsername(
-                      e.target.value
-                    )
+                    setUsername(e.target.value)
                   }
                   autoComplete="off"
                   required
                 />
-
               </div>
 
               {/* PASSWORD */}
-
               <div className="employeeField">
-
-                <label>
-                  PASSWORD INIZIALE
-                </label>
+                <label>PASSWORD INIZIALE</label>
 
                 <input
                   type="password"
                   placeholder="Minimo 6 caratteri"
                   value={password}
                   onChange={(e) =>
-                    setPassword(
-                      e.target.value
-                    )
+                    setPassword(e.target.value)
                   }
                   autoComplete="new-password"
                   required
                 />
-
               </div>
 
               {/* RUOLO */}
-
               <div className="employeeField">
-
-                <label>
-                  RUOLO LAVORATIVO
-                </label>
+                <label>RUOLO LAVORATIVO</label>
 
                 <select
-                  value={
-                    ruoloLavorativo
-                  }
+                  value={ruoloLavorativo}
                   onChange={(e) =>
-                    setRuoloLavorativo(
-                      e.target.value
-                    )
+                    setRuoloLavorativo(e.target.value)
                   }
                 >
-
                   <option value="Proprietario">
                     Proprietario
                   </option>
@@ -882,18 +636,12 @@ export default function DipendentiPage() {
                   <option value="Dipendente">
                     Dipendente
                   </option>
-
                 </select>
-
               </div>
 
               {/* PERCENTUALE */}
-
               <div className="employeeField">
-
-                <label>
-                  % STIPENDIO
-                </label>
+                <label>% STIPENDIO</label>
 
                 <input
                   type="text"
@@ -901,31 +649,23 @@ export default function DipendentiPage() {
                   readOnly
                   title="La percentuale viene assegnata automaticamente in base al ruolo."
                 />
-
               </div>
 
               {/* ASSUMI */}
-
               <button
                 type="submit"
                 className="employeeHireButton"
                 disabled={saving}
               >
-
                 {saving
                   ? "ASSUNZIONE IN CORSO..."
                   : "+ ASSUMI DIPENDENTE"}
-
               </button>
-
             </form>
-
           </div>
 
-          {/* MESSAGGIO */}
-
+          {/* MESSAGGI */}
           {message && (
-
             <div
               className={
                 success
@@ -933,11 +673,8 @@ export default function DipendentiPage() {
                   : "invoiceMessage"
               }
             >
-
               {message}
-
             </div>
-
           )}
 
           {/* ==================================
@@ -947,9 +684,7 @@ export default function DipendentiPage() {
           <div className="employeeListCard">
 
             <div className="employeeListHeader">
-
               <div>
-
                 <p className="welcomeLabel">
                   PERSONALE
                 </p>
@@ -957,321 +692,208 @@ export default function DipendentiPage() {
                 <h2>
                   Dipendenti AQUA BAR
                 </h2>
-
               </div>
 
               <span>
-
                 {
                   dipendenti.filter(
                     (dipendente) =>
-                      dipendente.attivo !==
-                      false
+                      dipendente.attivo !== false
                   ).length
                 }{" "}
-
                 attivi
-
               </span>
-
             </div>
 
-            {dipendenti.length ===
-            0 ? (
-
+            {dipendenti.length === 0 ? (
               <p className="emptyCart">
                 Nessun dipendente trovato.
               </p>
-
             ) : (
-
               <div className="employeeList">
 
-                {dipendenti.map(
-                  (dipendente) => (
+                {dipendenti.map((dipendente) => (
+                  <div
+                    className={`employeeRow ${
+                      dipendente.attivo === false
+                        ? "employeeInactive"
+                        : ""
+                    }`}
+                    key={dipendente.id}
+                  >
 
-                    <div
-                      className={`employeeRow ${
-                        dipendente.attivo ===
-                        false
-                          ? "employeeInactive"
-                          : ""
-                      }`}
-                      key={
-                        dipendente.id
-                      }
-                    >
-
-                      {/* IDENTITÀ */}
-
-                      <div className="employeeIdentity">
-
-                        <div className="employeeAvatar">
-
-                          {dipendente.nome
-                            ?.charAt(0)
-                            .toUpperCase() ||
-                            "D"}
-
-                        </div>
-
-                        <div>
-
-                          <strong>
-                            {
-                              dipendente.nome
-                            }
-                          </strong>
-
-                          <span>
-                            @
-                            {dipendente.username ||
-                              "-"}
-                          </span>
-
-                        </div>
-
+                    {/* IDENTITÀ */}
+                    <div className="employeeIdentity">
+                      <div className="employeeAvatar">
+                        {dipendente.nome
+                          ?.charAt(0)
+                          .toUpperCase() || "D"}
                       </div>
 
-                      {/* RUOLO */}
-
-                      <div className="employeeInfo">
-
-                        <small>
-                          RUOLO
-                        </small>
-
+                      <div>
                         <strong>
-
-                          {dipendente.ruolo ===
-                          "admin"
-                            ? "Amministratore"
-                            : dipendente.ruolo_lavorativo ||
-                              "Dipendente"}
-
+                          {dipendente.nome}
                         </strong>
 
+                        <span>
+                          @{dipendente.username || "-"}
+                        </span>
                       </div>
+                    </div>
 
-                      {/* STIPENDIO */}
+                    {/* RUOLO */}
+                    <div className="employeeInfo">
+                      <small>RUOLO</small>
 
-                      <div className="employeeInfo">
+                      <strong>
+                        {dipendente.ruolo === "admin"
+                          ? "Amministratore"
+                          : dipendente.ruolo_lavorativo ||
+                            "Dipendente"}
+                      </strong>
+                    </div>
 
-                        <small>
-                          STIPENDIO
-                        </small>
+                    {/* STIPENDIO */}
+                    <div className="employeeInfo">
+                      <small>STIPENDIO</small>
 
-                        <strong>
+                      <strong>
+                        {Number(
+                          dipendente.percentuale_stipendio ||
+                          0
+                        )}%
+                      </strong>
+                    </div>
 
-                          {Number(
-                            dipendente.percentuale_stipendio ||
-                              0
-                          )}%
+                    {/* DATA ASSUNZIONE */}
+                    <div className="employeeInfo">
+                      <small>ASSUNTO</small>
 
-                        </strong>
+                      <strong>
+                        {formatDate(
+                          dipendente.created_at
+                        )}
+                      </strong>
+                    </div>
 
-                      </div>
+                    {/* STATO */}
+                    <div className="employeeStatus">
+                      <span
+                        className={
+                          dipendente.attivo === false
+                            ? "employeeStatusOff"
+                            : "employeeStatusOn"
+                        }
+                      >
+                        {dipendente.attivo === false
+                          ? "LICENZIATO"
+                          : "ATTIVO"}
+                      </span>
+                    </div>
 
-                      {/* DATA */}
+                    {/* AZIONI */}
+                    <div className="employeeActions">
 
-                      <div className="employeeInfo">
-
-                        <small>
-                          ASSUNTO
-                        </small>
-
-                        <strong>
-
-                          {formatDate(
-                            dipendente.created_at
-                          )}
-
-                        </strong>
-
-                      </div>
-
-                      {/* STATO */}
-
-                      <div className="employeeStatus">
-
-                        <span
-                          className={
-                            dipendente.attivo ===
-                            false
-                              ? "employeeStatusOff"
-                              : "employeeStatusOn"
-                          }
+                      {dipendente.ruolo === "admin" ? (
+                        <span className="employeeAdminBadge">
+                          ADMIN
+                        </span>
+                      ) : (
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "8px",
+                            minWidth: "170px",
+                          }}
                         >
 
-                          {dipendente.attivo ===
-                          false
-                            ? "LICENZIATO"
-                            : "ATTIVO"}
-
-                        </span>
-
-                      </div>
-
-                      {/* ==================================
-                          AZIONI
-                      ================================== */}
-
-                      <div className="employeeActions">
-
-                        {dipendente.ruolo ===
-                        "admin" ? (
-
-                          <span className="employeeAdminBadge">
-                            ADMIN
-                          </span>
-
-                        ) : (
-
-                          <div
-                            style={{
-                              display:
-                                "flex",
-
-                              flexDirection:
-                                "column",
-
-                              gap: "8px",
-
-                              minWidth:
-                                "170px",
-                            }}
-                          >
-
-                            {/* LICENZIA / RIASSUMI */}
-
-                            {dipendente.attivo ===
-                            false ? (
-
-                              <button
-                                className="employeeReactivateButton"
-                                onClick={() =>
-                                  riattivaDipendente(
-                                    dipendente
-                                  )
-                                }
-                                disabled={
-                                  actionId ===
-                                  dipendente.id
-                                }
-                              >
-
-                                {actionId ===
-                                dipendente.id
-                                  ? "ATTENDI..."
-                                  : "RIASSUMI"}
-
-                              </button>
-
-                            ) : (
-
-                              <button
-                                className="employeeFireButton"
-                                onClick={() =>
-                                  licenziaDipendente(
-                                    dipendente
-                                  )
-                                }
-                                disabled={
-                                  actionId ===
-                                  dipendente.id
-                                }
-                              >
-
-                                {actionId ===
-                                dipendente.id
-                                  ? "ATTENDI..."
-                                  : "LICENZIA"}
-
-                              </button>
-
-                            )}
-
-                            {/* ELIMINA DEFINITIVAMENTE */}
-
+                          {/* LICENZIA O RIASSUMI */}
+                          {dipendente.attivo === false ? (
                             <button
+                              type="button"
+                              className="employeeReactivateButton"
                               onClick={() =>
-                                eliminaDipendente(
+                                riattivaDipendente(
                                   dipendente
                                 )
                               }
                               disabled={
-                                actionId ===
-                                dipendente.id
+                                actionId === dipendente.id
                               }
-                              style={{
-                                background:
-                                  "rgba(170, 20, 20, 0.18)",
-
-                                border:
-                                  "1px solid rgba(255, 70, 70, 0.70)",
-
-                                color:
-                                  "#ff6666",
-
-                                borderRadius:
-                                  "8px",
-
-                                padding:
-                                  "9px 12px",
-
-                                fontSize:
-                                  "10px",
-
-                                fontWeight:
-                                  "800",
-
-                                letterSpacing:
-                                  "0.4px",
-
-                                cursor:
-                                  actionId ===
-                                  dipendente.id
-                                    ? "not-allowed"
-                                    : "pointer",
-
-                                opacity:
-                                  actionId ===
-                                  dipendente.id
-                                    ? 0.5
-                                    : 1,
-
-                                width: "100%",
-                              }}
                             >
-
-                              {actionId ===
-                              dipendente.id
+                              {actionId === dipendente.id
                                 ? "ATTENDI..."
-                                : "ELIMINA DEFINITIVAMENTE"}
-
+                                : "RIASSUMI"}
                             </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="employeeFireButton"
+                              onClick={() =>
+                                licenziaDipendente(
+                                  dipendente
+                                )
+                              }
+                              disabled={
+                                actionId === dipendente.id
+                              }
+                            >
+                              {actionId === dipendente.id
+                                ? "ATTENDI..."
+                                : "LICENZIA"}
+                            </button>
+                          )}
 
-                          </div>
+                          {/* ELIMINA DEFINITIVAMENTE */}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              eliminaDipendente(
+                                dipendente
+                              )
+                            }
+                            disabled={
+                              actionId === dipendente.id
+                            }
+                            style={{
+                              background:
+                                "rgba(170, 20, 20, 0.18)",
+                              border:
+                                "1px solid rgba(255, 70, 70, 0.70)",
+                              color: "#ff6666",
+                              borderRadius: "8px",
+                              padding: "9px 12px",
+                              fontSize: "10px",
+                              fontWeight: "800",
+                              letterSpacing: "0.4px",
+                              cursor:
+                                actionId === dipendente.id
+                                  ? "not-allowed"
+                                  : "pointer",
+                              opacity:
+                                actionId === dipendente.id
+                                  ? 0.5
+                                  : 1,
+                              width: "100%",
+                            }}
+                          >
+                            {actionId === dipendente.id
+                              ? "ATTENDI..."
+                              : "ELIMINA DEFINITIVAMENTE"}
+                          </button>
 
-                        )}
-
-                      </div>
-
+                        </div>
+                      )}
                     </div>
-
-                  )
-                )}
-
+                  </div>
+                ))}
               </div>
-
             )}
-
           </div>
 
         </section>
-
       </div>
-
     </main>
   );
 }
