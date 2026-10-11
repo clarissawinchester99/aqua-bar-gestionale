@@ -1,8 +1,10 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabase";
+import Sidebar from "../../../components/Sidebar";
 
 export default function GestioneCatalogoPage() {
   const router = useRouter();
@@ -24,6 +26,10 @@ export default function GestioneCatalogoPage() {
   useEffect(() => {
     loadPage();
   }, []);
+
+  // ============================================
+  // CARICAMENTO PAGINA
+  // ============================================
 
   async function loadPage() {
     try {
@@ -63,6 +69,10 @@ export default function GestioneCatalogoPage() {
     }
   }
 
+  // ============================================
+  // CARICAMENTO PRODOTTI
+  // ============================================
+
   async function loadProducts() {
     const { data, error } = await supabase
       .from("products")
@@ -76,6 +86,10 @@ export default function GestioneCatalogoPage() {
     setProducts(data || []);
   }
 
+  // ============================================
+  // FORMATTAZIONE PREZZI
+  // ============================================
+
   function formatMoney(value) {
     return Number(value || 0).toLocaleString("it-IT", {
       minimumFractionDigits: 0,
@@ -84,7 +98,9 @@ export default function GestioneCatalogoPage() {
   }
 
   function parsePrice(value) {
-    const text = String(value).trim().replace(",", ".");
+    const text = String(value)
+      .trim()
+      .replace(",", ".");
 
     if (!text) return null;
 
@@ -101,6 +117,10 @@ export default function GestioneCatalogoPage() {
     setMessage(text);
     setSuccess(isSuccess);
   }
+
+  // ============================================
+  // AGGIUNGI PRODOTTO
+  // ============================================
 
   async function addProduct(event) {
     event.preventDefault();
@@ -145,6 +165,7 @@ export default function GestioneCatalogoPage() {
       );
     } catch (error) {
       console.error("Errore aggiunta prodotto:", error);
+
       showMessage(
         `Impossibile aggiungere il prodotto: ${error.message}`
       );
@@ -153,14 +174,20 @@ export default function GestioneCatalogoPage() {
     }
   }
 
+  // ============================================
+  // MODIFICA PRODOTTO
+  // ============================================
+
   function startEdit(product) {
     setEditingId(product.id);
     setEditName(product.nome);
+
     setEditPrice(
       product.prezzo === null
         ? ""
         : String(product.prezzo)
     );
+
     showMessage("");
   }
 
@@ -206,6 +233,7 @@ export default function GestioneCatalogoPage() {
       );
     } catch (error) {
       console.error("Errore modifica prodotto:", error);
+
       showMessage(
         `Impossibile modificare il prodotto: ${error.message}`
       );
@@ -214,10 +242,15 @@ export default function GestioneCatalogoPage() {
     }
   }
 
+  // ============================================
+  // ATTIVA / DISATTIVA PRODOTTO
+  // ============================================
+
   async function toggleProduct(product) {
     if (saving) return;
 
-    const nuovaAttivazione = product.attivo === false;
+    const nuovaAttivazione =
+      product.attivo === false;
 
     const conferma = window.confirm(
       nuovaAttivazione
@@ -233,7 +266,9 @@ export default function GestioneCatalogoPage() {
     try {
       const { error } = await supabase
         .from("products")
-        .update({ attivo: nuovaAttivazione })
+        .update({
+          attivo: nuovaAttivazione,
+        })
         .eq("id", product.id);
 
       if (error) throw error;
@@ -248,6 +283,7 @@ export default function GestioneCatalogoPage() {
       );
     } catch (error) {
       console.error("Errore stato prodotto:", error);
+
       showMessage(
         `Impossibile aggiornare il prodotto: ${error.message}`
       );
@@ -256,15 +292,25 @@ export default function GestioneCatalogoPage() {
     }
   }
 
+  // ============================================
+  // LOGOUT
+  // ============================================
+
   async function logout() {
     await supabase.auth.signOut();
     router.replace("/login");
   }
 
+  // ============================================
+  // CARICAMENTO
+  // ============================================
+
   if (loading) {
     return (
       <main className="loadingPage">
-        <div className="loadingText">AQUA BAR</div>
+        <div className="loadingText">
+          AQUA BAR
+        </div>
       </main>
     );
   }
@@ -273,58 +319,31 @@ export default function GestioneCatalogoPage() {
     return null;
   }
 
+  // ============================================
+  // PAGINA GESTIONE CATALOGO
+  // ============================================
+
   return (
     <main>
       <div className="overlay">
-        <aside className="sidebar">
-          <div className="brand">
-            <h1>AQUA</h1>
-            <span>BAR</span>
-          </div>
 
-          <nav>
-            <button onClick={() => router.push("/")}>
-              <span className="navIcon">⌂</span>
-              Dashboard
-            </button>
+        {/* SIDEBAR UNIFICATA */}
+        <Sidebar profile={profile} />
 
-            <button onClick={() => router.push("/fatture")}>
-              <span className="navIcon">▤</span>
-              Fatture
-            </button>
-
-            <button onClick={() => router.push("/import")}>
-              <span className="navIcon">◇</span>
-              Import
-            </button>
-
-            <button onClick={() => router.push("/stipendi")}>
-              <span className="navIcon">♙</span>
-              Stipendi
-            </button>
-
-            <button onClick={() => router.push("/dipendenti")}>
-              <span className="navIcon">♟</span>
-              Dipendenti
-            </button>
-
-            <button className="active">
-              <span className="navIcon">▦</span>
-              Gestione Catalogo
-            </button>
-          </nav>
-
-          <div className="sidebarBottom">
-            <p>Gestionale AQUA BAR</p>
-            <small>FiveM Management</small>
-          </div>
-        </aside>
-
+        {/* CONTENUTO */}
         <section className="content">
+
+          {/* HEADER */}
           <header>
             <div>
-              <p className="eyebrow">AQUA BAR</p>
-              <h2>Gestione Catalogo</h2>
+              <p className="eyebrow">
+                AQUA BAR
+              </p>
+
+              <h2>
+                Gestione Catalogo
+              </h2>
+
               <p className="subtitle">
                 Aggiungi prodotti e modifica i prezzi di vendita
               </p>
@@ -332,11 +351,16 @@ export default function GestioneCatalogoPage() {
 
             <div className="user">
               <div className="avatar">
-                {profile.nome?.charAt(0).toUpperCase() || "A"}
+                {profile.nome
+                  ?.charAt(0)
+                  .toUpperCase() || "A"}
               </div>
 
               <div className="userInfo">
-                <strong>{profile.nome || "Admin"}</strong>
+                <strong>
+                  {profile.nome || "Admin"}
+                </strong>
+
                 <span>
                   <i className="onlineDot"></i>
                   Amministratore
@@ -344,6 +368,7 @@ export default function GestioneCatalogoPage() {
               </div>
 
               <button
+                type="button"
                 className="logoutButton"
                 onClick={logout}
               >
@@ -352,31 +377,51 @@ export default function GestioneCatalogoPage() {
             </div>
           </header>
 
+          {/* ==================================
+              AGGIUNGI PRODOTTO
+          ================================== */}
+
           <div className="invoicePanel">
-            <p className="welcomeLabel">CATALOGO</p>
-            <h2>Aggiungi prodotto</h2>
+
+            <p className="welcomeLabel">
+              CATALOGO
+            </p>
+
+            <h2>
+              Aggiungi prodotto
+            </h2>
 
             <form
               className="invoiceForm"
               onSubmit={addProduct}
             >
-              <label>Nome prodotto</label>
+              <label>
+                Nome prodotto
+              </label>
+
               <input
                 type="text"
                 placeholder="Es. Cocktail Tropical"
                 value={newName}
-                onChange={(e) => setNewName(e.target.value)}
+                onChange={(e) =>
+                  setNewName(e.target.value)
+                }
                 required
               />
 
-              <label>Prezzo di vendita ($)</label>
+              <label>
+                Prezzo di vendita ($)
+              </label>
+
               <input
                 type="number"
                 min="0"
                 step="0.01"
                 placeholder="Es. 150"
                 value={newPrice}
-                onChange={(e) => setNewPrice(e.target.value)}
+                onChange={(e) =>
+                  setNewPrice(e.target.value)
+                }
                 required
               />
 
@@ -392,6 +437,7 @@ export default function GestioneCatalogoPage() {
             </form>
           </div>
 
+          {/* MESSAGGI */}
           {message && (
             <div
               className={
@@ -399,25 +445,38 @@ export default function GestioneCatalogoPage() {
                   ? "invoiceMessage success"
                   : "invoiceMessage"
               }
-              style={{ marginTop: "20px" }}
+              style={{
+                marginTop: "20px",
+              }}
             >
               {message}
             </div>
           )}
 
+          {/* ==================================
+              ELENCO PRODOTTI
+          ================================== */}
+
           <div
             className="invoiceHistory"
-            style={{ marginTop: "25px" }}
+            style={{
+              marginTop: "25px",
+            }}
           >
             <div className="invoiceHistoryHeader">
               <div>
                 <p className="welcomeLabel">
                   AMMINISTRAZIONE
                 </p>
-                <h2>Prodotti del catalogo</h2>
+
+                <h2>
+                  Prodotti del catalogo
+                </h2>
               </div>
 
-              <span>{products.length} prodotti</span>
+              <span>
+                {products.length} prodotti
+              </span>
             </div>
 
             {products.length === 0 ? (
@@ -426,19 +485,24 @@ export default function GestioneCatalogoPage() {
               </p>
             ) : (
               <div className="invoiceHistoryList">
+
                 {products.map((product) => (
                   <div
                     className="invoiceHistoryItem"
                     key={product.id}
                     style={{
                       opacity:
-                        product.attivo === false ? 0.65 : 1,
+                        product.attivo === false
+                          ? 0.65
+                          : 1,
                       gap: "15px",
                       flexWrap: "wrap",
                     }}
                   >
+
                     {editingId === product.id ? (
                       <>
+                        {/* MODIFICA PRODOTTO */}
                         <div
                           className="invoiceForm"
                           style={{
@@ -446,23 +510,33 @@ export default function GestioneCatalogoPage() {
                             minWidth: 0,
                           }}
                         >
-                          <label>Nome prodotto</label>
+                          <label>
+                            Nome prodotto
+                          </label>
+
                           <input
                             type="text"
                             value={editName}
                             onChange={(e) =>
-                              setEditName(e.target.value)
+                              setEditName(
+                                e.target.value
+                              )
                             }
                           />
 
-                          <label>Prezzo ($)</label>
+                          <label>
+                            Prezzo ($)
+                          </label>
+
                           <input
                             type="number"
                             min="0"
                             step="0.01"
                             value={editPrice}
                             onChange={(e) =>
-                              setEditPrice(e.target.value)
+                              setEditPrice(
+                                e.target.value
+                              )
                             }
                           />
                         </div>
@@ -475,14 +549,18 @@ export default function GestioneCatalogoPage() {
                           }}
                         >
                           <button
+                            type="button"
                             className="invoicePrimaryButton"
                             disabled={saving}
-                            onClick={() => saveEdit(product)}
+                            onClick={() =>
+                              saveEdit(product)
+                            }
                           >
                             SALVA
                           </button>
 
                           <button
+                            type="button"
                             className="cancelInvoiceButton"
                             disabled={saving}
                             onClick={cancelEdit}
@@ -493,12 +571,18 @@ export default function GestioneCatalogoPage() {
                       </>
                     ) : (
                       <>
+                        {/* INFORMAZIONI PRODOTTO */}
                         <div
                           className="invoiceHistoryMain"
-                          style={{ flex: "1 1 220px" }}
+                          style={{
+                            flex: "1 1 220px",
+                          }}
                         >
                           <div>
-                            <strong>{product.nome}</strong>
+                            <strong>
+                              {product.nome}
+                            </strong>
+
                             <p>
                               {product.attivo === false
                                 ? "Prodotto disattivato"
@@ -507,15 +591,22 @@ export default function GestioneCatalogoPage() {
                           </div>
                         </div>
 
+                        {/* PREZZO */}
                         <div className="invoiceHistoryTotal">
-                          <small>PREZZO</small>
+                          <small>
+                            PREZZO
+                          </small>
+
                           <strong>
                             {product.prezzo === null
                               ? "Da impostare"
-                              : `$${formatMoney(product.prezzo)}`}
+                              : `$${formatMoney(
+                                  product.prezzo
+                                )}`}
                           </strong>
                         </div>
 
+                        {/* AZIONI */}
                         <div
                           style={{
                             display: "flex",
@@ -524,17 +615,23 @@ export default function GestioneCatalogoPage() {
                           }}
                         >
                           <button
+                            type="button"
                             className="invoicePrimaryButton"
                             disabled={saving}
-                            onClick={() => startEdit(product)}
+                            onClick={() =>
+                              startEdit(product)
+                            }
                           >
                             MODIFICA
                           </button>
 
                           <button
+                            type="button"
                             className="cancelInvoiceButton"
                             disabled={saving}
-                            onClick={() => toggleProduct(product)}
+                            onClick={() =>
+                              toggleProduct(product)
+                            }
                           >
                             {product.attivo === false
                               ? "RIATTIVA"
@@ -548,6 +645,7 @@ export default function GestioneCatalogoPage() {
               </div>
             )}
           </div>
+
         </section>
       </div>
     </main>
