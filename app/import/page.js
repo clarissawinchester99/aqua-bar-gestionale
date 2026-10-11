@@ -1,8 +1,10 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabase";
+import Sidebar from "../../components/Sidebar";
 
 export default function ImportPage() {
   const router = useRouter();
@@ -36,6 +38,10 @@ export default function ImportPage() {
     loadPage();
   }, []);
 
+  // =====================================================
+  // FORMATTAZIONE
+  // =====================================================
+
   function formatMoney(value) {
     return Number(value || 0).toLocaleString("it-IT", {
       minimumFractionDigits: 0,
@@ -54,6 +60,10 @@ export default function ImportPage() {
       minute: "2-digit",
     });
   }
+
+  // =====================================================
+  // CARICAMENTO DATI
+  // =====================================================
 
   async function loadPage() {
     setLoading(true);
@@ -110,7 +120,10 @@ export default function ImportPage() {
       ]);
 
       if (profileResult.error) {
-        console.error("Errore profilo:", profileResult.error);
+        console.error(
+          "Errore profilo:",
+          profileResult.error
+        );
       } else {
         setProfile(profileResult.data);
       }
@@ -129,6 +142,7 @@ export default function ImportPage() {
           "Errore catalogo Import:",
           productsResult.error
         );
+
         setMessage(
           "Impossibile caricare il catalogo Import."
         );
@@ -158,6 +172,7 @@ export default function ImportPage() {
         "Errore caricamento Import:",
         error
       );
+
       setMessage(
         "Errore durante il caricamento della pagina."
       );
@@ -165,6 +180,10 @@ export default function ImportPage() {
       setLoading(false);
     }
   }
+
+  // =====================================================
+  // AGGIORNAMENTO FONDO CASSA E STORICO
+  // =====================================================
 
   async function refreshData() {
     const [
@@ -208,6 +227,10 @@ export default function ImportPage() {
     }
   }
 
+  // =====================================================
+  // MODIFICA QUANTITÀ
+  // =====================================================
+
   function handleQuantityChange(productId, value) {
     setMessage("");
     setSuccess(false);
@@ -217,6 +240,7 @@ export default function ImportPage() {
         ...prev,
         [productId]: "",
       }));
+
       return;
     }
 
@@ -232,6 +256,10 @@ export default function ImportPage() {
       ),
     }));
   }
+
+  // =====================================================
+  // CONFERMA IMPORT
+  // =====================================================
 
   async function confirmImport() {
     if (saving || cancellingId !== null) return;
@@ -301,6 +329,10 @@ export default function ImportPage() {
     }
   }
 
+  // =====================================================
+  // ANNULLAMENTO VECCHI IMPORT
+  // =====================================================
+
   async function cancelImport(order) {
     if (
       order.annullato ||
@@ -312,10 +344,10 @@ export default function ImportPage() {
 
     const confirmed = window.confirm(
       `Vuoi annullare questo ordine?\n\n` +
-        `Kit Cibo: ${order.kit_cibo}\n` +
-        `Kit Bevande: ${order.kit_bevande}\n` +
-        `Rimborso: $${formatMoney(order.totale)}\n\n` +
-        `Il denaro verrà restituito al Fondo Cassa.`
+      `Kit Cibo: ${order.kit_cibo}\n` +
+      `Kit Bevande: ${order.kit_bevande}\n` +
+      `Rimborso: $${formatMoney(order.totale)}\n\n` +
+      `Il denaro verrà restituito al Fondo Cassa.`
     );
 
     if (!confirmed) return;
@@ -354,6 +386,10 @@ export default function ImportPage() {
     }
   }
 
+  // =====================================================
+  // ANNULLAMENTO NUOVI IMPORT
+  // =====================================================
+
   async function cancelNewImport(order) {
     if (
       order.annullato ||
@@ -368,9 +404,9 @@ export default function ImportPage() {
 
     const confirmed = window.confirm(
       `Vuoi annullare questo ordine?\n\n` +
-        `${details}\n\n` +
-        `Rimborso: $${formatMoney(order.totale)}\n\n` +
-        `Il denaro verrà restituito al Fondo Cassa.`
+      `${details}\n\n` +
+      `Rimborso: $${formatMoney(order.totale)}\n\n` +
+      `Il denaro verrà restituito al Fondo Cassa.`
     );
 
     if (!confirmed) return;
@@ -411,10 +447,18 @@ export default function ImportPage() {
     }
   }
 
+  // =====================================================
+  // LOGOUT
+  // =====================================================
+
   async function logout() {
     await supabase.auth.signOut();
     router.replace("/login");
   }
+
+  // =====================================================
+  // STORICO UNIFICATO
+  // =====================================================
 
   const history = [
     ...imports.map((order) => ({
@@ -444,6 +488,10 @@ export default function ImportPage() {
       new Date(a.created_at).getTime()
   );
 
+  // =====================================================
+  // CARICAMENTO
+  // =====================================================
+
   if (loading) {
     return (
       <main className="loadingPage">
@@ -454,82 +502,27 @@ export default function ImportPage() {
     );
   }
 
+  // =====================================================
+  // PAGINA IMPORT
+  // =====================================================
+
   return (
     <main>
       <div className="overlay">
-        {/* SIDEBAR */}
 
-        <aside className="sidebar">
-          <div className="brand">
-            <h1>AQUA</h1>
-            <span>BAR</span>
-          </div>
-
-          <nav>
-            <button
-              onClick={() => router.push("/")}
-            >
-              <span className="navIcon">⌂</span>
-              Dashboard
-            </button>
-
-            <button
-              onClick={() => router.push("/fatture")}
-            >
-              <span className="navIcon">▤</span>
-              Fatture
-            </button>
-
-            <button className="active">
-              <span className="navIcon">◇</span>
-              Import
-            </button>
-
-            {profile?.ruolo === "admin" && (
-              <>
-                <button
-                  onClick={() =>
-                    router.push("/stipendi")
-                  }
-                >
-                  <span className="navIcon">♙</span>
-                  Stipendi
-                </button>
-
-                <button
-                  onClick={() =>
-                    router.push("/dipendenti")
-                  }
-                >
-                  <span className="navIcon">♟</span>
-                  Dipendenti
-                </button>
-
-                <button
-                  onClick={() =>
-                    router.push("/admin/import")
-                  }
-                >
-                  <span className="navIcon">▦</span>
-                  Catalogo Import
-                </button>
-              </>
-            )}
-          </nav>
-
-          <div className="sidebarBottom">
-            <p>Gestionale AQUA BAR</p>
-            <small>FiveM Management</small>
-          </div>
-        </aside>
+        {/* SIDEBAR UNIFICATA */}
+        <Sidebar profile={profile} />
 
         {/* CONTENUTO */}
-
         <section className="content">
+
+          {/* HEADER */}
           <header>
             <div>
               <p className="eyebrow">AQUA BAR</p>
+
               <h2>Import</h2>
+
               <p className="subtitle">
                 Gestisci le forniture del locale
               </p>
@@ -557,6 +550,7 @@ export default function ImportPage() {
               </div>
 
               <button
+                type="button"
                 className="logoutButton"
                 onClick={logout}
               >
@@ -566,7 +560,6 @@ export default function ImportPage() {
           </header>
 
           {/* FONDO CASSA */}
-
           <div className="importTopCard">
             <div>
               <span>
@@ -586,8 +579,8 @@ export default function ImportPage() {
           </div>
 
           {/* CATALOGO PRODOTTI */}
-
           <div className="importGrid">
+
             {products.length === 0 ? (
               <div className="importKitCard">
                 <p className="emptyCart">
@@ -597,7 +590,7 @@ export default function ImportPage() {
               </div>
             ) : (
               products.map((product) => {
-                const quantity = Number(
+                const productQuantity = Number(
                   quantities[product.id] || 0
                 );
 
@@ -651,10 +644,9 @@ export default function ImportPage() {
                       <span>Subtotale</span>
 
                       <strong>
-                        $
-                        {formatMoney(
-                          quantity *
-                            Number(product.prezzo)
+                        ${formatMoney(
+                          productQuantity *
+                          Number(product.prezzo)
                         )}
                       </strong>
                     </div>
@@ -664,8 +656,7 @@ export default function ImportPage() {
             )}
           </div>
 
-          {/* RIEPILOGO */}
-
+          {/* RIEPILOGO IMPORT */}
           <div className="importSummary">
             <div>
               <p className="welcomeLabel">
@@ -704,6 +695,7 @@ export default function ImportPage() {
               </div>
 
               <button
+                type="button"
                 className="importConfirmButton"
                 onClick={confirmImport}
                 disabled={
@@ -720,7 +712,6 @@ export default function ImportPage() {
           </div>
 
           {/* MESSAGGI */}
-
           {message && (
             <div
               className={
@@ -734,8 +725,8 @@ export default function ImportPage() {
           )}
 
           {/* STORICO IMPORT */}
-
           <div className="importHistory">
+
             <div className="importHistoryHeader">
               <div>
                 <p className="welcomeLabel">
@@ -758,6 +749,7 @@ export default function ImportPage() {
               </p>
             ) : (
               <div className="importHistoryList">
+
                 {history.map((order) => (
                   <div
                     className={`importHistoryItem ${
@@ -767,6 +759,8 @@ export default function ImportPage() {
                     }`}
                     key={order.key}
                   >
+
+                    {/* NUMERO ORDINE */}
                     <div className="importHistoryMain">
                       <div className="importOrderNumber">
                         #{order.id}
@@ -785,6 +779,7 @@ export default function ImportPage() {
                       </div>
                     </div>
 
+                    {/* DETTAGLI ORDINE */}
                     <div className="importHistoryDetails">
                       {order.descrizione.map(
                         (detail, index) => (
@@ -795,26 +790,27 @@ export default function ImportPage() {
                       )}
                     </div>
 
+                    {/* TOTALE */}
                     <div className="importHistoryTotal">
                       <small>
                         Totale
                       </small>
 
                       <strong>
-                        $
-                        {formatMoney(
-                          order.totale
-                        )}
+                        ${formatMoney(order.totale)}
                       </strong>
                     </div>
 
+                    {/* ANNULLAMENTO */}
                     <div className="importHistoryAction">
+
                       {order.annullato ? (
                         <span className="cancelledBadge">
                           ANNULLATO
                         </span>
                       ) : order.tipo === "vecchio" ? (
                         <button
+                          type="button"
                           className="cancelImportButton"
                           onClick={() =>
                             cancelImport(order)
@@ -830,6 +826,7 @@ export default function ImportPage() {
                         </button>
                       ) : profile?.ruolo === "admin" ? (
                         <button
+                          type="button"
                           className="cancelImportButton"
                           onClick={() =>
                             cancelNewImport(order)
@@ -854,6 +851,7 @@ export default function ImportPage() {
               </div>
             )}
           </div>
+
         </section>
       </div>
     </main>
