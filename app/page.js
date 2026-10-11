@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -11,6 +12,9 @@ export default function Home() {
   const [saldo, setSaldo] = useState(0);
   const [fatturato, setFatturato] = useState(0);
   const [totaleImport, setTotaleImport] = useState(0);
+  const [mioStipendio, setMioStipendio] = useState(0);
+  const [stipendiDaPagare, setStipendiDaPagare] = useState(0);
+  const [stipendioError, setStipendioError] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,6 +40,8 @@ export default function Home() {
         accountResult,
         invoiceResult,
         importResult,
+        stipendioResult,
+        pagamentiResult,
       ] = await Promise.all([
         supabase
           .from("profiles")
@@ -56,15 +62,16 @@ export default function Home() {
           .eq("annullato", false),
 
         supabase.rpc("totale_import_attivi"),
+
+        supabase.rpc("get_mio_stipendio"),
+
+        supabase.rpc("get_pagamenti_stipendi"),
       ]);
 
       /* PROFILO */
 
       if (profileResult.error) {
-        console.error(
-          "Errore profilo:",
-          profileResult.error
-        );
+        console.error("Errore profilo:", profileResult.error);
       } else {
         if (profileResult.data?.attivo === false) {
           await supabase.auth.signOut();
@@ -83,9 +90,7 @@ export default function Home() {
           accountResult.error
         );
       } else {
-        setSaldo(
-          Number(accountResult.data?.saldo) || 0
-        );
+        setSaldo(Number(accountResult.data?.saldo) || 0);
       }
 
       /* FATTURATO PERSONALE */
@@ -96,13 +101,11 @@ export default function Home() {
           invoiceResult.error
         );
       } else {
-        const totale =
-          (invoiceResult.data || []).reduce(
-            (somma, fattura) =>
-              somma +
-              Number(fattura.totale || 0),
-            0
-          );
+        const totale = (invoiceResult.data || []).reduce(
+          (somma, fattura) =>
+            somma + Number(fattura.totale || 0),
+          0
+        );
 
         setFatturato(totale);
       }
@@ -114,12 +117,42 @@ export default function Home() {
           "Errore totale import:",
           importResult.error
         );
-
         setTotaleImport(0);
       } else {
-        setTotaleImport(
-          Number(importResult.data) || 0
+        setTotaleImport(Number(importResult.data) || 0);
+      }
+
+      /* MIO STIPENDIO SETTIMANALE */
+
+      if (stipendioResult.error) {
+        console.error(
+          "Errore stipendio:",
+          stipendioResult.error
         );
+        setStipendioError(true);
+      } else {
+        const mio = (stipendioResult.data || [])[0];
+        setMioStipendio(Number(mio?.stipendio) || 0);
+      }
+
+      /* STIPENDI DA PAGARE */
+
+      if (pagamentiResult.error) {
+        console.error(
+          "Errore pagamenti:",
+          pagamentiResult.error
+        );
+        setStipendioError(true);
+      } else {
+        const mieiPagamenti = (
+          pagamentiResult.data || []
+        ).filter(
+          (pagamento) =>
+            pagamento.employee_id === user.id &&
+            pagamento.status === "da_pagare"
+        );
+
+        setStipendiDaPagare(mieiPagamenti.length);
       }
     } catch (error) {
       console.error(
@@ -131,201 +164,123 @@ export default function Home() {
     }
   }
 
-  /* LOGOUT */
-
   async function logout() {
     await supabase.auth.signOut();
     router.replace("/login");
   }
 
-  /* FORMATTAZIONE SOLDI */
-
   function formatMoney(value) {
-    return Number(value || 0).toLocaleString(
-      "it-IT",
-      {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2,
-      }
-    );
+    return Number(value || 0).toLocaleString("it-IT", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    });
   }
-
-  /* CARICAMENTO */
 
   if (loading) {
     return (
       <main className="loadingPage">
-        <div className="loadingText">
-          AQUA BAR
-        </div>
+        <div className="loadingText">AQUA BAR</div>
       </main>
     );
   }
 
   return (
     <main>
-
       <div className="overlay">
-
-        {/* =========================
-            SIDEBAR
-        ========================= */}
+        {/* SIDEBAR */}
 
         <aside className="sidebar">
-
           <div className="brand">
             <h1>AQUA</h1>
             <span>BAR</span>
           </div>
 
           <nav>
-
-            {/* DASHBOARD */}
-
             <button className="active">
-              <span className="navIcon">
-                ⌂
-              </span>
-
+              <span className="navIcon">⌂</span>
               Dashboard
             </button>
 
-            {/* FATTURE */}
-
             <button
-              onClick={() =>
-                router.push("/fatture")
-              }
+              onClick={() => router.push("/fatture")}
             >
-              <span className="navIcon">
-                ▤
-              </span>
-
+              <span className="navIcon">▤</span>
               Fatture
             </button>
 
-            {/* IMPORT */}
-
             <button
-              onClick={() =>
-                router.push("/import")
-              }
+              onClick={() => router.push("/import")}
             >
-              <span className="navIcon">
-                ◇
-              </span>
-
+              <span className="navIcon">◇</span>
               Import
             </button>
 
-            {/* MENU AMMINISTRATORE */}
+            {/* PAGINA STIPENDIO PERSONALE */}
+
+            <button
+              onClick={() => router.push("/mio-stipendio")}
+            >
+              <span className="navIcon">♙</span>
+              Il mio stipendio
+            </button>
+
+            {/* MENU ADMIN */}
 
             {profile?.ruolo === "admin" && (
               <>
-
-                {/* STIPENDI */}
-
                 <button
-                  onClick={() =>
-                    router.push("/stipendi")
-                  }
+                  onClick={() => router.push("/stipendi")}
                 >
-                  <span className="navIcon">
-                    ♙
-                  </span>
-
+                  <span className="navIcon">♙</span>
                   Stipendi
                 </button>
 
-                {/* DIPENDENTI */}
-
                 <button
-                  onClick={() =>
-                    router.push("/dipendenti")
-                  }
+                  onClick={() => router.push("/dipendenti")}
                 >
-                  <span className="navIcon">
-                    ♟
-                  </span>
-
+                  <span className="navIcon">♟</span>
                   Dipendenti
                 </button>
-
               </>
             )}
-
           </nav>
 
           <div className="sidebarBottom">
-
-            <p>
-              Gestionale AQUA BAR
-            </p>
-
-            <small>
-              FiveM Management
-            </small>
-
+            <p>Gestionale AQUA BAR</p>
+            <small>FiveM Management</small>
           </div>
-
         </aside>
 
-        {/* =========================
-            CONTENUTO
-        ========================= */}
+        {/* CONTENUTO */}
 
         <section className="content">
-
-          {/* HEADER */}
-
           <header>
-
             <div>
-
-              <p className="eyebrow">
-                AQUA BAR
-              </p>
-
-              <h2>
-                Dashboard
-              </h2>
-
+              <p className="eyebrow">AQUA BAR</p>
+              <h2>Dashboard</h2>
               <p className="subtitle">
                 Benvenuto nel gestionale del locale
               </p>
-
             </div>
 
-            {/* UTENTE */}
-
             <div className="user">
-
               <div className="avatar">
-
                 {profile?.nome
                   ?.charAt(0)
-                  .toUpperCase() ||
-                  "A"}
-
+                  .toUpperCase() || "A"}
               </div>
 
               <div className="userInfo">
-
                 <strong>
-                  {profile?.nome ||
-                    "Utente"}
+                  {profile?.nome || "Utente"}
                 </strong>
 
                 <span>
-
                   <i className="onlineDot"></i>
-
                   {profile?.ruolo === "admin"
                     ? "Amministratore"
                     : "Dipendente"}
-
                 </span>
-
               </div>
 
               <button
@@ -334,124 +289,99 @@ export default function Home() {
               >
                 Esci
               </button>
-
             </div>
-
           </header>
 
-          {/* =========================
-              CARDS
-          ========================= */}
+          {/* CARDS ORIGINALI */}
 
           <div className="cards">
-
-            {/* FONDO CASSA */}
+            <div className="card">
+              <div className="cardIcon">◎</div>
+              <div>
+                <span>FONDO CASSA</span>
+                <h3>${formatMoney(saldo)}</h3>
+                <p>Conto aziendale AQUA BAR</p>
+              </div>
+            </div>
 
             <div className="card">
-
-              <div className="cardIcon">
-                ◎
-              </div>
-
+              <div className="cardIcon">♙</div>
               <div>
+                <span>FATTURATO PERSONALE</span>
+                <h3>${formatMoney(fatturato)}</h3>
+                <p>Il tuo fatturato totale</p>
+              </div>
+            </div>
 
-                <span>
-                  FONDO CASSA
-                </span>
+            <div className="card">
+              <div className="cardIcon">▱</div>
+              <div>
+                <span>TOTALE IMPORT</span>
+                <h3>${formatMoney(totaleImport)}</h3>
+                <p>Import attivi non annullati</p>
+              </div>
+            </div>
+
+            {/* NUOVA CARD STIPENDIO */}
+
+            <div className="card">
+              <div className="cardIcon">♙</div>
+              <div>
+                <span>IL MIO STIPENDIO</span>
 
                 <h3>
-                  ${formatMoney(saldo)}
+                  {stipendioError
+                    ? "Non disponibile"
+                    : `$${formatMoney(mioStipendio)}`}
                 </h3>
 
                 <p>
-                  Conto aziendale AQUA BAR
+                  Maturato questa settimana
+                  (sabato - sabato)
                 </p>
 
-              </div>
+                {!stipendioError &&
+                  stipendiDaPagare > 0 && (
+                    <p>
+                      {stipendiDaPagare}{" "}
+                      {stipendiDaPagare === 1
+                        ? "stipendio da pagare"
+                        : "stipendi da pagare"}
+                    </p>
+                  )}
 
+                <button
+                  type="button"
+                  className="logoutButton"
+                  onClick={() =>
+                    router.push("/mio-stipendio")
+                  }
+                  style={{ marginTop: 12 }}
+                >
+                  Vedi il mio stipendio
+                </button>
+              </div>
             </div>
-
-            {/* FATTURATO PERSONALE */}
-
-            <div className="card">
-
-              <div className="cardIcon">
-                ♙
-              </div>
-
-              <div>
-
-                <span>
-                  FATTURATO PERSONALE
-                </span>
-
-                <h3>
-                  ${formatMoney(fatturato)}
-                </h3>
-
-                <p>
-                  Il tuo fatturato totale
-                </p>
-
-              </div>
-
-            </div>
-
-            {/* TOTALE IMPORT */}
-
-            <div className="card">
-
-              <div className="cardIcon">
-                ▱
-              </div>
-
-              <div>
-
-                <span>
-                  TOTALE IMPORT
-                </span>
-
-                <h3>
-                  ${formatMoney(totaleImport)}
-                </h3>
-
-                <p>
-                  Import attivi non annullati
-                </p>
-
-              </div>
-
-            </div>
-
           </div>
 
-          {/* =========================
-              BENVENUTO
-          ========================= */}
+          {/* BENVENUTO ORIGINALE */}
 
           <div className="welcome">
-
             <span className="goldLine"></span>
 
             <p className="welcomeLabel">
               GESTIONALE UFFICIALE
             </p>
 
-            <h2>
-              AQUA BAR
-            </h2>
+            <h2>AQUA BAR</h2>
 
             <p className="welcomeText">
               Gestisci fatture, vendite,
               forniture e personale del locale.
             </p>
-
           </div>
-
         </section>
-
       </div>
-
     </main>
   );
 }
